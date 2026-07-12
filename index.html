@@ -2,49 +2,124 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Classic Games</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a1a; color: #e0e0e0; min-height: 100vh;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      font-family:'Inter',system-ui,-apple-system,sans-serif;
+      background:#080814;color:#e0e0e8;min-height:100vh;overflow-x:hidden;
     }
-    .container { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
-    h1 {
-      text-align: center; font-size: 28px; margin-bottom: 4px;
-      background: linear-gradient(135deg, #00d4ff, #7b2ff7);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .bg{
+      position:fixed;inset:0;z-index:-2;
+      background:linear-gradient(135deg,#080814,#0c0c28,#14142a,#0c0c28,#080814);
+      background-size:400% 400%;animation:bgShift 20s ease infinite;
     }
-    .sub { text-align: center; color: #888; font-size: 14px; margin-bottom: 24px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 12px; }
-    .card {
-      background: #12122a; border: 1px solid rgba(255,255,255,.06);
-      border-radius: 12px; padding: 20px 16px; text-align: center;
-      text-decoration: none; color: inherit; transition: all .2s;
+    @keyframes bgShift{0%{background-position:0% 50%}25%{background-position:100% 0%}50%{background-position:100% 100%}75%{background-position:0% 100%}100%{background-position:0% 50%}}
+    .bg-orb{
+      position:fixed;inset:-50%;z-index:-1;pointer-events:none;
+      background:radial-gradient(ellipse at 20% 30%,rgba(60,40,200,.12) 0%,transparent 50%),
+        radial-gradient(ellipse at 80% 70%,rgba(200,40,120,.08) 0%,transparent 50%),
+        radial-gradient(ellipse at 50% 10%,rgba(0,200,255,.06) 0%,transparent 50%);
+      animation:orbFloat 30s ease-in-out infinite;
     }
-    .card:hover { border-color: #00d4ff; transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,212,255,.1); }
-    .card .icon { font-size: 36px; margin-bottom: 8px; }
-    .card h3 { font-size: 14px; margin-bottom: 4px; }
-    .card p { font-size: 11px; color: #888; }
-    @media (max-width:400px) { .grid { grid-template-columns: repeat(2,1fr); } }
+    @keyframes orbFloat{0%{transform:translate(0,0) rotate(0deg)}33%{transform:translate(3%,4%) rotate(120deg)}66%{transform:translate(-3%,-2%) rotate(240deg)}100%{transform:translate(0,0) rotate(360deg)}}
+    .container{max-width:900px;margin:0 auto;padding:32px 20px 64px;position:relative}
+    header{text-align:center;padding:30px 0 40px}
+    .logo{
+      font-size:clamp(28px,5vw,44px);font-weight:900;letter-spacing:-1px;
+      background:linear-gradient(135deg,#00d4ff,#a855f7,#f472b6);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      position:relative;display:inline-block;
+    }
+    .logo::after{
+      content:'8';position:absolute;top:-12px;right:-22px;
+      font-size:14px;font-weight:800;background:#f472b6;
+      -webkit-text-fill-color:#fff;background:linear-gradient(135deg,#f472b6,#ec4899);
+      -webkit-background-clip:padding-box;background-clip:padding-box;
+      border-radius:10px;padding:1px 7px;line-height:1.4;
+      box-shadow:0 4px 16px rgba(244,114,182,.4);
+    }
+    .subtitle{color:rgba(255,255,255,.4);font-size:clamp(13px,2vw,15px);margin-top:6px;letter-spacing:2px;font-weight:400}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
+    .card{
+      position:relative;border-radius:16px;padding:0;overflow:hidden;
+      text-decoration:none;color:inherit;display:flex;flex-direction:column;
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+      backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      transition:all .3s cubic-bezier(.4,0,.2,1);
+    }
+    .card:hover{
+      transform:translateY(-6px);
+      border-color:rgba(255,255,255,.15);
+      box-shadow:0 12px 40px rgba(0,0,0,.4),0 0 30px rgba(0,212,255,.08);
+    }
+    .card-preview{
+      height:100px;display:flex;align-items:center;justify-content:center;
+      font-size:48px;position:relative;overflow:hidden;
+    }
+    .card-preview::after{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(to bottom,transparent 60%,rgba(8,8,20,.8));
+    }
+    .card:nth-child(1) .card-preview{background:linear-gradient(135deg,rgba(0,255,247,.15),rgba(0,255,247,.02))}
+    .card:nth-child(2) .card-preview{background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(0,255,136,.02))}
+    .card:nth-child(3) .card-preview{background:linear-gradient(135deg,rgba(245,166,35,.15),rgba(245,166,35,.02))}
+    .card:nth-child(4) .card-preview{background:linear-gradient(135deg,rgba(0,255,170,.15),rgba(0,255,170,.02))}
+    .card:nth-child(5) .card-preview{background:linear-gradient(135deg,rgba(0,200,255,.15),rgba(0,200,255,.02))}
+    .card:nth-child(6) .card-preview{background:linear-gradient(135deg,rgba(192,132,252,.15),rgba(192,132,252,.02))}
+    .card:nth-child(7) .card-preview{background:linear-gradient(135deg,rgba(0,212,255,.15),rgba(0,212,255,.02))}
+    .card:nth-child(8) .card-preview{background:linear-gradient(135deg,rgba(255,23,68,.15),rgba(255,23,68,.02))}
+    .card-body{padding:12px 14px 14px;position:relative;z-index:1}
+    .card-title{font-size:15px;font-weight:700;margin-bottom:2px;display:flex;align-items:center;gap:6px}
+    .card-desc{font-size:11px;color:rgba(255,255,255,.4);line-height:1.4}
+    .card-tag{
+      display:inline-block;font-size:9px;font-weight:600;padding:1px 7px;border-radius:4px;
+      background:rgba(255,255,255,.06);color:rgba(255,255,255,.35);margin-top:6px;letter-spacing:.5px;
+    }
+    .card-badge{
+      position:absolute;top:8px;right:8px;z-index:2;
+      font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;
+      background:rgba(0,212,255,.15);color:#00d4ff;border:1px solid rgba(0,212,255,.2);
+      backdrop-filter:blur(4px);letter-spacing:.3px;
+    }
+    footer{
+      text-align:center;padding:40px 0 20px;
+      color:rgba(255,255,255,.2);font-size:12px;letter-spacing:1px;
+    }
+    footer a{color:rgba(255,255,255,.3);text-decoration:none}
+    footer a:hover{color:rgba(255,255,255,.5)}
+    @media(max-width:480px){
+      .container{padding:16px 12px 32px}
+      header{padding:16px 0 24px}
+      .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+      .card-preview{height:70px;font-size:36px}
+      .card-body{padding:8px 10px 10px}
+      .card-title{font-size:13px}
+      .card-desc{font-size:10px}
+      .card-badge{display:none}
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Classic Games</h1>
-    <p class="sub">8 free HTML5 games</p>
-    <div class="grid">
-      <a href="games/tetris/" class="card"><div class="icon">🔲</div><h3>Tetris</h3><p>Classic block puzzle</p></a>
-      <a href="games/snake/" class="card"><div class="icon">🐍</div><h3>Snake</h3><p>Eat & grow</p></a>
-      <a href="games/2048/" class="card"><div class="icon">🎮</div><h3>2048</h3><p>Merge the tiles</p></a>
-      <a href="games/flappy/" class="card"><div class="icon">🐦</div><h3>Flappy Bird</h3><p>Flap to fly</p></a>
-      <a href="games/space/" class="card"><div class="icon">🚀</div><h3>Space Shooter</h3><p>Blast aliens</p></a>
-      <a href="games/ttt/" class="card"><div class="icon">❌</div><h3>Tic Tac Toe</h3><p>vs AI</p></a>
-      <a href="games/memory/" class="card"><div class="icon">🃏</div><h3>Memory</h3><p>Match pairs</p></a>
-      <a href="games/mine/" class="card"><div class="icon">💣</div><h3>Minesweeper</h3><p>Find the mines</p></a>
-    </div>
+<div class="bg"></div><div class="bg-orb"></div>
+<div class="container">
+  <header>
+    <div class="logo">Classic Games</div>
+    <div class="subtitle">8 FREE HTML5 GAMES &bull; NO ADS &bull; NO TRACKERS</div>
+  </header>
+  <div class="grid">
+    <a href="games/tetris/" class="card"><div class="card-badge">HOT</div><div class="card-preview">🔲</div><div class="card-body"><div class="card-title">Tetris</div><div class="card-desc">The legendary block-stacking puzzle. Rotate, clear lines, beat your high score.</div><span class="card-tag">Puzzle</span></div></a>
+    <a href="games/snake/" class="card"><div class="card-preview">🐍</div><div class="card-body"><div class="card-title">Snake</div><div class="card-desc">Guide the snake, eat food, grow longer. Don't crash into walls or yourself!</div><span class="card-tag">Arcade</span></div></a>
+    <a href="games/2048/" class="card"><div class="card-preview">🎮</div><div class="card-body"><div class="card-title">2048</div><div class="card-desc">Merge tiles to reach 2048. Addictive sliding number puzzle with undo.</div><span class="card-tag">Puzzle</span></div></a>
+    <a href="games/flappy/" class="card"><div class="card-preview">🐦</div><div class="card-body"><div class="card-title">Flappy Bird</div><div class="card-desc">Tap to flap through pipes. How far can you go? Neon edition.</div><span class="card-tag">Arcade</span></div></a>
+    <a href="games/space/" class="card"><div class="card-badge">NEW</div><div class="card-preview">🚀</div><div class="card-body"><div class="card-title">Space Shooter</div><div class="card-desc">Blast waves of aliens, collect power-ups, defeat bosses in deep space.</div><span class="card-tag">Action</span></div></a>
+    <a href="games/ttt/" class="card"><div class="card-preview">❌</div><div class="card-body"><div class="card-title">Tic Tac Toe</div><div class="card-desc">Classic X vs O with unbeatable AI. Easy &amp; Hard modes.</div><span class="card-tag">Strategy</span></div></a>
+    <a href="games/memory/" class="card"><div class="card-preview">🃏</div><div class="card-body"><div class="card-title">Memory</div><div class="card-desc">Flip cards and match pairs. Train your brain with 4×4 or 6×6 grid.</div><span class="card-tag">Puzzle</span></div></a>
+    <a href="games/mine/" class="card"><div class="card-preview">💣</div><div class="card-body"><div class="card-title">Minesweeper</div><div class="card-desc">Find all mines without blowing up. Easy, Medium &amp; Hard difficulties.</div><span class="card-tag">Puzzle</span></div></a>
   </div>
+  <footer><a href="https://github.com/KoRifCan/Classic-Games" target="_blank">GitHub</a> &bull; 8 Games &bull; 100% Free</footer>
+</div>
 </body>
 </html>

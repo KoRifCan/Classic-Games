@@ -26,7 +26,7 @@ h1{font-size:clamp(1rem,4vw,1.6rem);font-weight:800;letter-spacing:4px;text-tran
 .bw{background:rgba(255,255,255,.04);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:var(--gap);box-shadow:0 4px 24px rgba(0,0,0,.3)}
 .board{display:grid;gap:var(--gap);touch-action:none}
 .cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cell-size)*.52);font-weight:800;cursor:pointer;border-radius:3px;background:linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.1);transition:background .12s,transform .1s,box-shadow .15s;position:relative;will-change:transform;color:#ddd;text-shadow:none}
-.cell:active:not(.rv):not(.flag):not(.mine-show){transform:scale(.88)}
+.cell:active:not(.rv):not(.flag):not(.mine-show):not(.mine-hit){transform:scale(.88)}
 .cell.rv{background:rgba(0,0,0,.35);border-color:rgba(255,255,255,.04);cursor:default;box-shadow:inset 0 0 6px rgba(0,0,0,.5)}
 .cell.rv:active{transform:none}
 .cell.flag{animation:flagWave 1.2s ease-in-out infinite}
@@ -108,9 +108,71 @@ function sfxExplode(){playTone(120,.3,'sawtooth',.12);setTimeout(()=>playTone(80
 function sfxWin(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,.2,'sine',.1),i*120))}
 function sfxChord(freqs,dur,vol=.08){freqs.forEach((f,i)=>setTimeout(()=>playTone(f,dur,'sine',vol),i*60))}
 
+// Procedural background music using Web Audio API
+const bgMusic = {
+  ctx:null,playing:false,nodes:[],master:null,
+  _create(){
+    if(this.ctx)return;
+    try{this.ctx=getCtx()}catch(e){return}
+    const ctx=this.ctx,now=ctx.currentTime;
+    const master=ctx.createGain();
+    master.gain.value=muted?0:0.06;
+    master.connect(ctx.destination);
+    this.master=master;
+
+    const filter=ctx.createBiquadFilter();
+    filter.type='lowpass';filter.frequency.value=500;filter.Q.value=1.5;
+    filter.connect(master);
+
+    const chord=[130.81,155.56,196,233.08,293.66];
+    chord.forEach((f,i)=>{
+      const osc=ctx.createOscillator();
+      const g=ctx.createGain();
+      osc.type=i<2?'triangle':'sine';
+      osc.frequency.value=f+(i*0.08);
+      g.gain.setValueAtTime(0,now);
+      g.gain.linearRampToValueAtTime(0.014-i*0.0005,now+3+i*0.5);
+      osc.connect(g);g.connect(filter);
+      osc.start();
+      this.nodes.push(osc);
+    });
+
+    const lfo=ctx.createOscillator();
+    const lfoG=ctx.createGain();
+    lfo.type='sine';lfo.frequency.value=0.12;
+    lfoG.gain.value=150;
+    lfo.connect(lfoG);lfoG.connect(filter.frequency);
+    lfo.start();
+    this.nodes.push(lfo);
+
+    const sub=ctx.createOscillator();
+    const subG=ctx.createGain();
+    sub.type='sine';sub.frequency.value=65.41;
+    subG.gain.setValueAtTime(0,now);
+    subG.gain.linearRampToValueAtTime(0.035,now+4);
+    sub.connect(subG);subG.connect(master);
+    sub.start();
+    this.nodes.push(sub);
+  },
+  start(){
+    this._create();
+    if(!this.playing&&this.master){
+      this.master.gain.linearRampToValueAtTime(muted?0:0.06,this.ctx.currentTime+0.3);
+      this.playing=true;
+    }
+  },
+  stop(){
+    if(this.master&&this.ctx){
+      this.master.gain.linearRampToValueAtTime(0,this.ctx.currentTime+0.5);
+    }
+    this.playing=false;
+  },
+  toggle(){this.playing?this.stop():this.start()}
+};
+
 function init(m){
   mode=m;const cfg=MODES[m];R=cfg.r;C=cfg.c;M=cfg.m;
-  over=false;won=false;fc=true;rev=0;flags=0;timer=0;tr=false;th=false;
+  over=false;won=false;fc=true;rev=0;flags=0;timer=0;th=false;
   if(ti){clearInterval(ti);ti=null}
   brd=[];el=[];
   for(let r=0;r<R;r++){brd[r]=[];el[r]=[];for(let c=0;c<C;c++)brd[r][c]={m:false,rv:false,f:false,a:0}}
@@ -164,7 +226,7 @@ function placeMines(sr,sc){
 
 function reveal(r,c){
   if(over||won||brd[r][c].rv||brd[r][c].f)return;
-  if(fc){fc=false;placeMines(r,c);startTimer();tr=true}
+  if(fc){fc=false;bgMusic.start();placeMines(r,c);startTimer()}
   if(brd[r][c].m){hitMine(r,c);return}
   flood(r,c);
   sfxReveal();
@@ -197,10 +259,11 @@ function showCell(r,c){
 }
 
 function hitMine(r,c){
-  over=true;stopTimer();tr=false;face.textContent='💀';
+  over=true;stopTimer();face.textContent='💀';
   const hitE=el[r][c];
   hitE.classList.add('mine-hit');
   sfxExplode();
+  bgMusic.stop();
   document.getElementById('app').classList.add('shake');
   spawnExplosionParticles(r,c);
   for(let rr=0;rr<R;rr++)for(let cc=0;cc<C;cc++){
@@ -212,7 +275,7 @@ function hitMine(r,c){
 }
 
 function winGame(){
-  won=true;over=true;stopTimer();ti=null;tr=false;
+  won=true;over=true;stopTimer();
   face.textContent='😎';
   for(let r=0;r<R;r++)for(let c=0;c<C;c++){
     const cell=brd[r][c],e=el[r][c];
@@ -228,6 +291,7 @@ function checkWin(){return rev===R*C-M}
 
 function toggleFlag(r,c){
   if(over||won||brd[r][c].rv)return;
+  if(fc)bgMusic.start();
   const cell=brd[r][c],e=el[r][c];
   if(cell.f){cell.f=false;flags--;e.classList.remove('flag');e.textContent=''}
   else{cell.f=true;flags++;e.classList.add('flag');e.textContent='';sfxFlag()}
@@ -274,17 +338,17 @@ function getCell(e){
 }
 
 function spawnConfetti(){
-  const colors=['#ff0','#f0f','#0ff','#f00','#0f0','#00f','#ff8800','#ff0088'];
-  for(let i=0;i<60;i++){
+  const colors=['#ff0','#f0f','#0ff','#f00','#0f0','#00f','#ff8800','#ff0088','#00ff88','#8800ff'];
+  for(let i=0;i<80;i++){
     const c=document.createElement('div');
     c.className='confetti';
     c.style.left=Math.random()*100+'vw';
     c.style.background=colors[Math.floor(Math.random()*colors.length)];
-    c.style.width=(4+Math.random()*6)+'px';
-    c.style.height=(4+Math.random()*6)+'px';
+    c.style.width=(3+Math.random()*7)+'px';
+    c.style.height=(3+Math.random()*7)+'px';
     c.style.borderRadius=Math.random()>.5?'50%':'2px';
-    c.style.animationDuration=(1.5+Math.random()*1.5)+'s';
-    c.style.animationDelay=Math.random()*.5+'s';
+    c.style.animationDuration=(1.5+Math.random()*2)+'s';
+    c.style.animationDelay=Math.random()*.8+'s';
     document.body.appendChild(c);
     setTimeout(()=>c.remove(),4000);
   }
@@ -296,14 +360,14 @@ function spawnExplosionParticles(r,c){
   const rect=e.getBoundingClientRect();
   const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
   const colors=['#ff1744','#ff9100','#ffea00','#d500f9','#fff'];
-  for(let i=0;i<20;i++){
+  for(let i=0;i<30;i++){
     const p=document.createElement('div');
-    p.style.cssText=`position:fixed;left:${cx}px;top:${cy}px;width:${4+Math.random()*6}px;height:${4+Math.random()*6}px;border-radius:50%;background:${colors[Math.floor(Math.random()*colors.length)]};pointer-events:none;z-index:100;`;
-    const angle=Math.random()*Math.PI*2,vel=80+Math.random()*160;
+    p.style.cssText=`position:fixed;left:${cx}px;top:${cy}px;width:${3+Math.random()*7}px;height:${3+Math.random()*7}px;border-radius:50%;background:${colors[Math.floor(Math.random()*colors.length)]};pointer-events:none;z-index:100;`;
+    const angle=Math.random()*Math.PI*2,vel=100+Math.random()*200;
     const dx=Math.cos(angle)*vel,dy=Math.sin(angle)*vel;
-    p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(0)`,opacity:0}],{duration:500+Math.random()*300,easing:'ease-out',fill:'forwards'});
+    p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(0)`,opacity:0}],{duration:500+Math.random()*400,easing:'ease-out',fill:'forwards'});
     document.body.appendChild(p);
-    setTimeout(()=>p.remove(),1200);
+    setTimeout(()=>p.remove(),1500);
   }
 }
 
@@ -336,14 +400,14 @@ board.addEventListener('mouseleave',()=>{
 
 // Touch events
 board.addEventListener('touchstart',e=>{
-  th=false;tr=false;
+  th=false;
   const g=getCell(e);if(!g||brd[g.row][g.col].rv||over||won)return;
   ts={x:e.touches[0].clientX,y:e.touches[0].clientY};
   tch=g;
   lt=setTimeout(()=>{
     lt=null;
     toggleFlag(tch.row,tch.col);
-    th=true;tr=true;
+    th=true;
     if(navigator.vibrate)navigator.vibrate(15);
   },500);
 },{passive:true});
@@ -374,7 +438,7 @@ face.addEventListener('click',resetGame);
 // Difficulty buttons
 $$('.diff input').forEach(b=>b.addEventListener('change',()=>{
   if(lt){clearTimeout(lt);lt=null}
-  th=false;tr=false;tch=null;ts=null;
+  th=false;tch=null;ts=null;
   init(b.value);
 }));
 
@@ -382,6 +446,9 @@ $$('.diff input').forEach(b=>b.addEventListener('change',()=>{
 muteBtn.addEventListener('click',()=>{
   muted=!muted;
   muteBtn.textContent=muted?'🔇':'🔊';
+  if(bgMusic.master){
+    bgMusic.master.gain.value=muted?0:(bgMusic.playing?0.06:0);
+  }
 });
 
 // Window resize
@@ -393,7 +460,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='1')init('easy');
   if(e.key==='2')init('medium');
   if(e.key==='3')init('hard');
-  if(e.key==='m'||e.key==='M'){muted=!muted;muteBtn.textContent=muted?'🔇':'🔊'}
+  if(e.key==='m'||e.key==='M'){muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';if(bgMusic.master)bgMusic.master.gain.value=muted?0:(bgMusic.playing?0.06:0)}
 });
 
 init('easy');
