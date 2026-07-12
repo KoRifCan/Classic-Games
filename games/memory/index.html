@@ -538,15 +538,17 @@ state.flipped=[];state.locked=false;
 updateStats();
 playSound('match');
 if(state.matched===state.totalPairs)win();
-}else{
-ea.classList.add('wrong');eb.classList.add('wrong');
-playSound('mismatch');
-setTimeout(()=>{
-ea.classList.remove('flipped','wrong');
-eb.classList.remove('flipped','wrong');
-state.flipped=[];state.locked=false;
-},700);
-}
+  }else{
+    playSound('mismatch');
+    setTimeout(()=>{
+      ea.classList.add('wrong');eb.classList.add('wrong');
+      setTimeout(()=>{
+        ea.classList.remove('flipped','wrong');
+        eb.classList.remove('flipped','wrong');
+        state.flipped=[];state.locked=false;
+      },400);
+    },600);
+  }
 }
 
 function tick(){

@@ -264,6 +264,8 @@ let lastTime=0,gTime=0;
     groundOffset=0;
     nightCycle=0;
     frameCount=0;
+    lastTime=0;
+    gTime=0;
     scoreEl.textContent='0';
   }
 
@@ -276,21 +278,21 @@ let lastTime=0,gTime=0;
 
   function spawnObstacle(){
     const r=Math.random();
-    let ww,hh,type='cactus';
+    let w,h,type='cactus';
     if(r<0.5){
-      ww=8+Math.random()*16;
-      hh=25+Math.random()*30;
+      w=8+Math.random()*16;
+      h=25+Math.random()*30;
     }else if(r<0.8||speed<9){
-      ww=10+Math.random()*20;
-      hh=30+Math.random()*25;
+      w=10+Math.random()*20;
+      h=30+Math.random()*25;
     }else{
       type='ptera';
-      ww=30;
-      hh=20;
+      w=30;
+      h=20;
     }
     obstacles.push({
-      type,ww,hh,
-      x:W+ww,
+      type,ww:w,h,
+      x:W+w,
       bottomY:type==='ptera'?GROUND_Y-30-Math.random()*60:GROUND_Y
     });
   }

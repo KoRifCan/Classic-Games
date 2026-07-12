@@ -1131,9 +1131,11 @@ function restartGame(){
   game=createGame();
   game.highScore=hs;
   game.state='playing';
-  audio.init();
-  bgMusic.init();
-  if(!muted)bgMusic.start();
+  try{
+    audio.init();
+    bgMusic.init();
+    if(!muted)bgMusic.start();
+  }catch(e){}
   touchId=null;
   game.player.autoFire=false;
 }
@@ -1151,7 +1153,7 @@ canvas=document.getElementById('c');
 canvas.width=W;canvas.height=H;
 ctx=canvas.getContext('2d');
 setupTouch(canvas);
-audio.init();
+try{audio.init()}catch(e){}
 resize();
 window.addEventListener('resize',resize);
 rafId=requestAnimationFrame(loop);

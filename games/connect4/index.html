@@ -26,7 +26,7 @@ h1{font-size:28px;font-weight:700;background:linear-gradient(90deg,#ff6b6b,#ffd9
 .score-yellow{color:#ffd93d}
 .score-draw{color:#888}
 .turn-indicator{margin-bottom:8px;font-size:16px;font-weight:600;padding:6px 20px;border-radius:10px;background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.06);min-width:180px;text-align:center}
-.board-wrap{position:relative;background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.board-wrap{position:relative;background:rgba(10,10,35,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
 .board{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;position:relative}
 .col{display:flex;flex-direction:column-reverse;gap:6px;cursor:pointer;padding:4px;border-radius:10px;transition:all .2s;position:relative}
 .col:hover{background:rgba(255,255,255,0.06)}
@@ -304,7 +304,7 @@ for(let c=0;c<COLS;c++){
 const colEl = document.createElement('div');
 colEl.className = 'col';
 colEl.dataset.col = c;
-if(!gameActive||isAnimating) colEl.classList.add('dim');
+if(!gameActive) colEl.classList.add('dim');
 const hint = document.createElement('div');
 hint.className = 'col-hint';
 hint.textContent = currentPlayer===1?'🔴':'🟡';

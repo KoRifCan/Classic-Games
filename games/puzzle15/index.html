@@ -390,21 +390,10 @@ h1{
     modal.classList.remove('open');
     puzzleGrid.querySelectorAll('.tile.correct').forEach(t=>t.classList.remove('correct'));
     isSolved=false;timerStarted=false;stopTimer();
-    initBoard();
-    render();
     moves=0;seconds=0;
-    updateStats();
+    initBoard();
     const n=gridSize,total=n*n*15;
-    let count=0;
-    function doShuffleMove(){
-      if(count>=total){
-        isShuffling=false;shuffleBtn.disabled=false;
-        document.querySelectorAll('.size-btn').forEach(b=>b.disabled=false);
-        moves=0;seconds=0;updateStats();
-        render();
-        return;
-      }
-      count++;
+    for(let i=0;i<total;i++){
       const movable=[];
       if(emptyRow>0)movable.push(grid[emptyRow-1][emptyCol]);
       if(emptyRow<n-1)movable.push(grid[emptyRow+1][emptyCol]);
@@ -412,18 +401,15 @@ h1{
       if(emptyCol<n-1)movable.push(grid[emptyRow][emptyCol+1]);
       const val=movable[Math.random()*movable.length|0];
       const pos=findTile(val);
-      if(!pos){doShuffleMove();return;}
+      if(!pos)continue;
       grid[emptyRow][emptyCol]=val;
       grid[pos.row][pos.col]=0;
-      const tileEl=puzzleGrid.querySelector(`.tile[data-value="${val}"]`);
-      if(tileEl){
-        const cs=getCellSize();
-        tileEl.style.transform=`translate(${emptyCol*cs+GAP/2}px,${emptyRow*cs+GAP/2}px)`;
-      }
       emptyRow=pos.row;emptyCol=pos.col;
-      setTimeout(doShuffleMove,40);
     }
-    doShuffleMove();
+    isShuffling=false;shuffleBtn.disabled=false;
+    document.querySelectorAll('.size-btn').forEach(b=>b.disabled=false);
+    render();
+    updateStats();
   }
 
   function setSize(n){
@@ -490,7 +476,7 @@ h1{
   });
 
   document.addEventListener('contextmenu',e=>e.preventDefault());
-  initBoard();render();updateStats();loadBest();resetAndShuffle();
+  loadBest();resetAndShuffle();
 })();
 </script>
 </body>
