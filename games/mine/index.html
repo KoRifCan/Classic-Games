@@ -6,53 +6,71 @@
 <title>Minesweeper</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#090914;--surface:#111122;--surface2:#1a1a30;--border:#2a2a4e;--text:#ddd;--text-dim:#666;--accent:#00d4ff;--glow:rgba(0,212,255,0.35);--cell-size:38px;--gap:2px}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;justify-content:center;align-items:center;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overflow:hidden}
-#app{text-align:center;padding:10px;max-width:800px;width:100%;display:flex;flex-direction:column;align-items:center;gap:6px}
-h1{font-size:clamp(1rem,4vw,1.6rem);font-weight:800;letter-spacing:4px;text-transform:uppercase;color:var(--accent);text-shadow:0 0 20px var(--glow),0 0 40px var(--glow)}
+:root{--cell-size:38px;--gap:2px}
+@keyframes bgMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100dvh;display:flex;justify-content:center;align-items:center;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overflow:hidden;margin:0;background:linear-gradient(-45deg,#0f0c29,#302b63,#24243e,#0f0c29);background-size:400% 400%;animation:bgMove 12s ease infinite}
+@keyframes bgMove{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+#app{text-align:center;padding:10px;max-width:800px;width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
+h1{font-size:clamp(1rem,4vw,1.6rem);font-weight:800;letter-spacing:4px;text-transform:uppercase;color:#00d4ff;text-shadow:0 0 20px rgba(0,212,255,.35),0 0 40px rgba(0,212,255,.2);margin-bottom:2px}
 .diff{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
-.diff button{padding:5px 14px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:4px;cursor:pointer;font-size:clamp(.7rem,2.5vw,.85rem);font-weight:600;transition:all .2s}
-.diff button:hover{border-color:var(--accent)}
-.diff button.active{border-color:var(--accent);background:rgba(0,212,255,.1);color:var(--accent);box-shadow:0 0 10px var(--glow)}
-.status{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:4px 10px;width:100%;max-width:500px}
-.counter{font-family:'Courier New',monospace;font-size:clamp(1.1rem,4vw,1.5rem);font-weight:700;color:var(--accent);text-shadow:0 0 8px var(--glow);min-width:44px;letter-spacing:2px;font-variant-numeric:tabular-nums}
-.face{font-size:clamp(1.2rem,4.5vw,1.6rem);cursor:pointer;background:none;border:none;padding:2px 10px;border-radius:4px;transition:background .15s;line-height:1.2}
-.face:hover{background:var(--surface2)}
-.bw{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:var(--gap)}
+.diff label{position:relative;padding:5px 14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#ddd;border-radius:6px;cursor:pointer;font-size:clamp(.7rem,2.5vw,.85rem);font-weight:600;transition:all .25s;backdrop-filter:blur(4px)}
+.diff label:hover{border-color:rgba(0,212,255,.5);background:rgba(0,212,255,.08)}
+.diff input{position:absolute;opacity:0;pointer-events:none}
+.diff input:checked+span{color:#00d4ff;text-shadow:0 0 10px rgba(0,212,255,.5)}
+.diff label:has(input:checked){border-color:#00d4ff;background:rgba(0,212,255,.12);box-shadow:0 0 15px rgba(0,212,255,.2)}
+.status{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.06);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:6px 14px;width:100%;max-width:500px;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.counter{font-family:'Courier New',monospace;font-size:clamp(1.1rem,4vw,1.5rem);font-weight:700;color:#00d4ff;text-shadow:0 0 8px rgba(0,212,255,.5);min-width:44px;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.face{font-size:clamp(1.2rem,4.5vw,1.6rem);cursor:pointer;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:2px 12px;border-radius:8px;transition:all .2s;line-height:1.3;backdrop-filter:blur(4px)}
+.face:hover{background:rgba(255,255,255,.12);transform:scale(1.05)}
+.face:active{transform:scale(.92)}
+.bw{background:rgba(255,255,255,.04);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:var(--gap);box-shadow:0 4px 24px rgba(0,0,0,.3)}
 .board{display:grid;gap:var(--gap);touch-action:none}
-.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cell-size)*.52);font-weight:800;cursor:pointer;border-radius:2px;background:var(--surface2);border:1px solid var(--border);transition:background .1s,transform .08s,box-shadow .15s;position:relative;will-change:transform;color:var(--text)}
-.cell:active:not(.rv):not(.flag):not(.mine-show){transform:scale(.93)}
-.cell.rv{background:var(--bg);border-color:transparent;cursor:default;box-shadow:inset 0 0 4px rgba(0,0,0,.4)}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cell-size)*.52);font-weight:800;cursor:pointer;border-radius:3px;background:linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.1);transition:background .12s,transform .1s,box-shadow .15s;position:relative;will-change:transform;color:#ddd;text-shadow:none}
+.cell:active:not(.rv):not(.flag):not(.mine-show){transform:scale(.88)}
+.cell.rv{background:rgba(0,0,0,.35);border-color:rgba(255,255,255,.04);cursor:default;box-shadow:inset 0 0 6px rgba(0,0,0,.5)}
 .cell.rv:active{transform:none}
-.cell.flag{color:#ff6b6b;text-shadow:0 0 8px rgba(255,107,107,.4)}
+.cell.flag{animation:flagWave 1.2s ease-in-out infinite}
 .cell.flag::after{content:'🚩';font-size:calc(var(--cell-size)*.5)}
-.cell.n1{color:#2196F3;text-shadow:0 0 8px rgba(33,150,243,.5)}
-.cell.n2{color:#4CAF50;text-shadow:0 0 8px rgba(76,175,80,.5)}
-.cell.n3{color:#f44336;text-shadow:0 0 8px rgba(244,67,54,.5)}
-.cell.n4{color:#9C27B0;text-shadow:0 0 8px rgba(156,39,176,.5)}
-.cell.n5{color:#FF9800;text-shadow:0 0 8px rgba(255,152,0,.5)}
-.cell.n6{color:#009688;text-shadow:0 0 8px rgba(0,150,136,.5)}
-.cell.n7{color:#607D8B;text-shadow:0 0 6px rgba(96,125,139,.4)}
-.cell.n8{color:#9E9E9E;text-shadow:0 0 6px rgba(158,158,158,.4)}
-.cell.mine-hit{background:#ff1744!important;animation:explode .55s ease-out;z-index:2;box-shadow:0 0 30px rgba(255,23,68,.7)!important;border-color:#ff1744!important}
+@keyframes flagWave{0%,100%{transform:translateY(0)}25%{transform:translateY(-2px)}75%{transform:translateY(1px)}}
+.cell.n1{background:linear-gradient(135deg,rgba(33,150,243,.15),rgba(33,150,243,.05));color:#2196F3;text-shadow:0 0 10px rgba(33,150,243,.6),0 0 20px rgba(33,150,243,.3)}
+.cell.n2{background:linear-gradient(135deg,rgba(76,175,80,.15),rgba(76,175,80,.05));color:#4CAF50;text-shadow:0 0 10px rgba(76,175,80,.6),0 0 20px rgba(76,175,80,.3)}
+.cell.n3{background:linear-gradient(135deg,rgba(244,67,54,.15),rgba(244,67,54,.05));color:#f44336;text-shadow:0 0 10px rgba(244,67,54,.6),0 0 20px rgba(244,67,54,.3)}
+.cell.n4{background:linear-gradient(135deg,rgba(156,39,176,.15),rgba(156,39,176,.05));color:#9C27B0;text-shadow:0 0 10px rgba(156,39,176,.6),0 0 20px rgba(156,39,176,.3)}
+.cell.n5{background:linear-gradient(135deg,rgba(255,152,0,.15),rgba(255,152,0,.05));color:#FF9800;text-shadow:0 0 10px rgba(255,152,0,.6),0 0 20px rgba(255,152,0,.3)}
+.cell.n6{background:linear-gradient(135deg,rgba(0,150,136,.15),rgba(0,150,136,.05));color:#009688;text-shadow:0 0 10px rgba(0,150,136,.6),0 0 20px rgba(0,150,136,.3)}
+.cell.n7{background:linear-gradient(135deg,rgba(96,125,139,.15),rgba(96,125,139,.05));color:#607D8B;text-shadow:0 0 8px rgba(96,125,139,.5),0 0 16px rgba(96,125,139,.2)}
+.cell.n8{background:linear-gradient(135deg,rgba(158,158,158,.15),rgba(158,158,158,.05));color:#9E9E9E;text-shadow:0 0 8px rgba(158,158,158,.5),0 0 16px rgba(158,158,158,.2)}
+.cell.mine-hit{background:#ff1744!important;animation:mineBurst .6s ease-out;z-index:5;box-shadow:0 0 40px rgba(255,23,68,.8)!important;border-color:#ff1744!important}
+.cell.mine-hit::after{content:'💥';font-size:calc(var(--cell-size)*.6);position:absolute;z-index:6;animation:burstPop .4s ease-out}
+@keyframes mineBurst{0%{transform:scale(1);box-shadow:0 0 0 transparent}20%{transform:scale(1.5);box-shadow:0 0 60px rgba(255,23,68,.9)}50%{transform:scale(.8)}70%{transform:scale(1.1)}100%{transform:scale(1);box-shadow:0 0 20px rgba(255,23,68,.4)}}
+@keyframes burstPop{0%{transform:scale(0) rotate(-30deg);opacity:0}50%{transform:scale(1.3) rotate(10deg)}100%{transform:scale(1) rotate(0);opacity:1}}
 .cell.mine-show{animation:pop .35s ease-out both}
 .cell.mine-show::after{content:'💣';font-size:calc(var(--cell-size)*.5)}
 .cell.wflag::after{content:'❌';font-size:calc(var(--cell-size)*.45)}
 .cell.wflag{background:rgba(255,23,68,.15)!important}
 .cell.win-flag{opacity:.7}
-@keyframes explode{0%{transform:scale(1);box-shadow:0 0 0 transparent}30%{transform:scale(1.4);box-shadow:0 0 40px rgba(255,23,68,.8)}60%{transform:scale(.85)}100%{transform:scale(1);box-shadow:0 0 15px rgba(255,23,68,.3)}}
 @keyframes pop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
-.best{margin-top:4px;font-size:clamp(.7rem,2.5vw,.8rem);color:var(--text-dim);min-height:1.2em}
-@media(max-width:420px){.status{padding:3px 6px}.counter{min-width:32px;letter-spacing:1px}.bw{padding:1px}}
+.best{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:4px;font-size:clamp(.7rem,2.5vw,.8rem);color:rgba(255,255,255,.5);min-height:1.2em;flex-wrap:wrap}
+.best span{display:inline-flex;align-items:center;gap:3px}
+.best .gold{color:#ffd700;text-shadow:0 0 6px rgba(255,215,0,.4)}
+.best .silver{color:#c0c0c0;text-shadow:0 0 6px rgba(192,192,192,.3)}
+.best .bronze{color:#cd7f32;text-shadow:0 0 6px rgba(205,127,50,.3)}
+.mute{position:fixed;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);backdrop-filter:blur(8px);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .2s;z-index:10;color:#ddd}
+.mute:hover{background:rgba(255,255,255,.12);border-color:rgba(0,212,255,.4)}
+@keyframes confettiFall{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+.confetti{position:fixed;width:8px;height:8px;border-radius:2px;pointer-events:none;z-index:100;animation:confettiFall 2.5s ease-in forwards}
+@keyframes explosionShake{0%,100%{transform:translate(0)}10%{transform:translate(-4px,2px)}20%{transform:translate(4px,-2px)}30%{transform:translate(-2px,4px)}40%{transform:translate(2px,-4px)}50%{transform:translate(-4px,-2px)}60%{transform:translate(4px,2px)}70%{transform:translate(-2px,-4px)}80%{transform:translate(2px,4px)}90%{transform:translate(-4px,2px)}}
+.shake{animation:explosionShake .5s ease-out}
+@media(max-width:420px){.status{padding:4px 8px}.counter{min-width:32px;letter-spacing:1px}.bw{padding:1px}}
 </style>
 </head>
 <body>
 <div id="app">
 <h1>MINESWEEPER</h1>
 <div class="diff">
-<button data-m="easy" class="active">Easy</button>
-<button data-m="medium">Medium</button>
-<button data-m="hard">Hard</button>
+<label><input type="radio" name="diff" value="easy" checked><span>Easy</span></label>
+<label><input type="radio" name="diff" value="medium"><span>Medium</span></label>
+<label><input type="radio" name="diff" value="hard"><span>Hard</span></label>
 </div>
 <div class="status">
 <div class="counter" id="flagC">000</div>
@@ -60,16 +78,35 @@ h1{font-size:clamp(1rem,4vw,1.6rem);font-weight:800;letter-spacing:4px;text-tran
 <div class="counter" id="timer">000</div>
 </div>
 <div class="bw"><div class="board" id="board"></div></div>
-<div class="best" id="best">Best: --</div>
+<div class="best" id="best"></div>
 </div>
+<button class="mute" id="muteBtn" title="Toggle sound">🔊</button>
 <script>
 const $=(s,o=document)=>o.querySelector(s),$$=(s,o=document)=>[...o.querySelectorAll(s)];
 const MODES={easy:{r:9,c:9,m:10},medium:{r:16,c:16,m:40},hard:{r:16,c:30,m:99}};
 const NCOL=['','n1','n2','n3','n4','n5','n6','n7','n8'];
 
-let mode='easy',R=9,C=9,M=10,brd=[],el=[],flags=0,timer=0,ti=null,fc=true,over=false,won=false,rev=0,tch=null,th=false,lt=null,ts=null,tr=false;
+let mode='easy',R=9,C=9,M=10,brd=[],el=[],flags=0,timer=0,ti=null,fc=true,over=false,won=false,rev=0,tch=null,th=false,lt=null,ts=null,muted=false;
 
-const face=$('#face'),flagC=$('#flagC'),timerEl=$('#timer'),board=$('#board'),bestEl=$('#best');
+const face=$('#face'),flagC=$('#flagC'),timerEl=$('#timer'),board=$('#board'),bestEl=$('#best'),muteBtn=$('#muteBtn');
+
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+let actx=null;
+function getCtx(){if(!actx)actx=new AudioCtx();return actx}
+function playTone(freq,dur,type='sine',vol=.12){
+  if(muted)return;
+  try{
+    const c=getCtx(),o=c.createOscillator(),g=c.createGain();
+    o.type=type;o.frequency.value=freq;g.gain.value=vol;
+    g.gain.exponentialRampToValueAtTime(.001,c.currentTime+dur);
+    o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+dur);
+  }catch(e){}
+}
+function sfxReveal(){playTone(600,.08,'sine',.08)}
+function sfxFlag(){playTone(400,.1,'triangle',.08);setTimeout(()=>playTone(600,.1,'triangle',.06),80)}
+function sfxExplode(){playTone(120,.3,'sawtooth',.12);setTimeout(()=>playTone(80,.4,'sawtooth',.1),100);setTimeout(()=>playTone(50,.5,'sawtooth',.08),250)}
+function sfxWin(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(f,.2,'sine',.1),i*120))}
+function sfxChord(freqs,dur,vol=.08){freqs.forEach((f,i)=>setTimeout(()=>playTone(f,dur,'sine',vol),i*60))}
 
 function init(m){
   mode=m;const cfg=MODES[m];R=cfg.r;C=cfg.c;M=cfg.m;
@@ -77,12 +114,13 @@ function init(m){
   if(ti){clearInterval(ti);ti=null}
   brd=[];el=[];
   for(let r=0;r<R;r++){brd[r]=[];el[r]=[];for(let c=0;c<C;c++)brd[r][c]={m:false,rv:false,f:false,a:0}}
-  $$('.diff button').forEach(b=>b.classList.toggle('active',b.dataset.m===m));
+  $$('.diff input').forEach(b=>b.checked=b.value===m);
   resize();
   render();
   updateUI();
   loadBest();
   face.textContent='🙂';
+  document.getElementById('app').classList.remove('shake');
 }
 
 function resize(){
@@ -129,6 +167,7 @@ function reveal(r,c){
   if(fc){fc=false;placeMines(r,c);startTimer();tr=true}
   if(brd[r][c].m){hitMine(r,c);return}
   flood(r,c);
+  sfxReveal();
   if(checkWin())winGame();
   updateUI();
 }
@@ -161,6 +200,9 @@ function hitMine(r,c){
   over=true;stopTimer();tr=false;face.textContent='💀';
   const hitE=el[r][c];
   hitE.classList.add('mine-hit');
+  sfxExplode();
+  document.getElementById('app').classList.add('shake');
+  spawnExplosionParticles(r,c);
   for(let rr=0;rr<R;rr++)for(let cc=0;cc<C;cc++){
     const cell=brd[rr][cc],e=el[rr][cc];
     if(cell.m&&!cell.f){e.classList.add('mine-show');e.textContent=''}
@@ -176,6 +218,8 @@ function winGame(){
     const cell=brd[r][c],e=el[r][c];
     if(cell.m&&!cell.f){e.classList.add('mine-show','win-flag');e.textContent=''}
   }
+  sfxWin();
+  spawnConfetti();
   saveBest();
   updateUI();
 }
@@ -186,7 +230,7 @@ function toggleFlag(r,c){
   if(over||won||brd[r][c].rv)return;
   const cell=brd[r][c],e=el[r][c];
   if(cell.f){cell.f=false;flags--;e.classList.remove('flag');e.textContent=''}
-  else{cell.f=true;flags++;e.classList.add('flag');e.textContent=''}
+  else{cell.f=true;flags++;e.classList.add('flag');e.textContent='';sfxFlag()}
   updateUI();
 }
 
@@ -200,8 +244,16 @@ function updateUI(){
 }
 
 function loadBest(){
-  const saved=localStorage.getItem('ms_best_'+mode);
-  bestEl.textContent=saved?'Best: '+saved+'s':'Best: --';
+  const diffs=['easy','medium','hard'];
+  const medals=['🥇','🥈','🥉'];
+  const cls=['gold','silver','bronze'];
+  let html='';
+  diffs.forEach((d,i)=>{
+    const saved=localStorage.getItem('ms_best_'+d);
+    if(saved)html+=`<span class="${cls[i]}">${medals[i]} ${d}: ${saved}s</span>`;
+    else html+=`<span class="${cls[i]}">${medals[i]} ${d}: --</span>`;
+  });
+  bestEl.innerHTML=html;
 }
 
 function saveBest(){
@@ -219,6 +271,40 @@ function getCell(e){
   while(t&&!t.dataset.r)t=t.parentElement;
   if(!t)return null;
   return{t,row:+t.dataset.r,col:+t.dataset.c}
+}
+
+function spawnConfetti(){
+  const colors=['#ff0','#f0f','#0ff','#f00','#0f0','#00f','#ff8800','#ff0088'];
+  for(let i=0;i<60;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.style.left=Math.random()*100+'vw';
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.width=(4+Math.random()*6)+'px';
+    c.style.height=(4+Math.random()*6)+'px';
+    c.style.borderRadius=Math.random()>.5?'50%':'2px';
+    c.style.animationDuration=(1.5+Math.random()*1.5)+'s';
+    c.style.animationDelay=Math.random()*.5+'s';
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),4000);
+  }
+}
+
+function spawnExplosionParticles(r,c){
+  const e=el[r][c];
+  if(!e)return;
+  const rect=e.getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  const colors=['#ff1744','#ff9100','#ffea00','#d500f9','#fff'];
+  for(let i=0;i<20;i++){
+    const p=document.createElement('div');
+    p.style.cssText=`position:fixed;left:${cx}px;top:${cy}px;width:${4+Math.random()*6}px;height:${4+Math.random()*6}px;border-radius:50%;background:${colors[Math.floor(Math.random()*colors.length)]};pointer-events:none;z-index:100;`;
+    const angle=Math.random()*Math.PI*2,vel=80+Math.random()*160;
+    const dx=Math.cos(angle)*vel,dy=Math.sin(angle)*vel;
+    p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(0)`,opacity:0}],{duration:500+Math.random()*300,easing:'ease-out',fill:'forwards'});
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),1200);
+  }
 }
 
 // Mouse events
@@ -286,11 +372,17 @@ board.addEventListener('touchcancel',()=>{
 face.addEventListener('click',resetGame);
 
 // Difficulty buttons
-$$('.diff button').forEach(b=>b.addEventListener('click',()=>{
+$$('.diff input').forEach(b=>b.addEventListener('change',()=>{
   if(lt){clearTimeout(lt);lt=null}
   th=false;tr=false;tch=null;ts=null;
-  init(b.dataset.m);
+  init(b.value);
 }));
+
+// Mute toggle
+muteBtn.addEventListener('click',()=>{
+  muted=!muted;
+  muteBtn.textContent=muted?'🔇':'🔊';
+});
 
 // Window resize
 let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(resize,150)});
@@ -301,6 +393,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='1')init('easy');
   if(e.key==='2')init('medium');
   if(e.key==='3')init('hard');
+  if(e.key==='m'||e.key==='M'){muted=!muted;muteBtn.textContent=muted?'🔇':'🔊'}
 });
 
 init('easy');

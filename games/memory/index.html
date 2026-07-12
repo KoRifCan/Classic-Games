@@ -6,248 +6,509 @@
 <title>Memory</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a1a;color:#e0e0e0;min-height:100vh;display:flex;justify-content:center;align-items:center}
-.container{width:100%;max-width:600px;padding:16px;text-align:center}
+body{
+font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+min-height:100vh;display:flex;justify-content:center;align-items:center;
+background:linear-gradient(135deg,#0a0a2e,#1a0a3e,#0a1a3e,#0a0a2e);
+background-size:400% 400%;
+animation:gradientBG 15s ease infinite;
+color:#e0e0e0;overflow-x:hidden
+}
+@keyframes gradientBG{
+0%{background-position:0% 50%}
+50%{background-position:100% 50%}
+100%{background-position:0% 50%}
+}
+.container{width:100%;max-width:600px;padding:16px;text-align:center;position:relative;z-index:1}
 h1{font-size:26px;background:linear-gradient(135deg,#00d4ff,#7b2ff7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px}
 .sub{color:#666;font-size:13px;margin-bottom:12px}
-.stats{display:flex;justify-content:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
-.stat{background:#12122a;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px 16px;min-width:80px}
-.stat .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px}
-.stat .value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stats{display:flex;justify-content:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.stat{
+background:rgba(18,18,42,.7);
+backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+border:1px solid rgba(255,255,255,.08);
+border-radius:12px;padding:8px 14px;min-width:72px;
+box-shadow:0 8px 32px rgba(0,0,0,.3);
+transition:transform .2s ease
+}
+.stat:hover{transform:translateY(-2px)}
+.stat .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.stat .value{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
 .stat .value.best{color:#ffd700}
-.controls{display:flex;justify-content:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-.btn{background:#1a1a3a;border:1px solid rgba(255,255,255,.1);color:#e0e0e0;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .2s;font-family:inherit}
-.btn:hover{background:#2a2a5a;border-color:#00d4ff}
+.stat .stars{font-size:14px;letter-spacing:2px;margin-top:1px;line-height:1}
+.stat .star-on{color:#ffd700;text-shadow:0 0 6px rgba(255,215,0,.5)}
+.stat .star-off{color:#444}
+.controls{display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.size-group{display:flex;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1)}
+.size-group .btn{
+border-radius:0;border:none;padding:8px 16px;
+background:rgba(26,26,58,.7);backdrop-filter:blur(8px);
+color:#888;cursor:pointer;font-size:13px;font-family:inherit;
+transition:all .2s
+}
+.size-group .btn.active{
+background:linear-gradient(135deg,#00d4ff,#7b2ff7);
+color:#fff;font-weight:600
+}
+.size-group .btn:not(.active):hover{color:#e0e0e0;background:rgba(42,42,90,.7)}
+.btn{
+background:rgba(26,26,58,.7);backdrop-filter:blur(8px);
+border:1px solid rgba(255,255,255,.1);color:#e0e0e0;
+padding:8px 18px;border-radius:10px;cursor:pointer;
+font-size:13px;transition:all .2s;font-family:inherit;
+display:inline-flex;align-items:center;gap:6px
+}
+.btn:hover{background:rgba(42,42,90,.7);border-color:rgba(0,212,255,.3)}
 .btn.primary{background:linear-gradient(135deg,#00d4ff,#7b2ff7);border:none;font-weight:600}
-.btn.primary:hover{opacity:.85}
-.btn.active{border-color:#00d4ff;background:#2a2a5a}
-.grid{display:grid;justify-content:center;gap:8px;margin:0 auto;max-width:500px;perspective:1000px}
+.btn.primary:hover{opacity:.85;border:none}
+.btn.mute{width:36px;height:36px;padding:0;align-items:center;justify-content:center;border-radius:50%;font-size:16px}
+.btn.mute.muted{opacity:.5;background:rgba(255,68,68,.15);border-color:rgba(255,68,68,.3)}
+.grid{display:grid;justify-content:center;gap:8px;margin:0 auto;max-width:520px;perspective:1000px}
 .grid-4{grid-template-columns:repeat(4,1fr)}
 .grid-6{grid-template-columns:repeat(6,1fr)}
-.card{aspect-ratio:3/4;cursor:pointer;position:relative;transform-style:preserve-3d;transition:transform .4s cubic-bezier(.4,0,.2,1);border-radius:10px;user-select:none}
+.card{
+aspect-ratio:3/4;cursor:pointer;position:relative;
+transform-style:preserve-3d;
+transition:transform .5s cubic-bezier(.4,0,.2,1);
+border-radius:12px;user-select:none
+}
 .card.flipped{transform:rotateY(180deg)}
-.card.matched{animation:matchPulse .5s ease}
-.card.matched .card-face.front{box-shadow:0 0 20px rgba(0,255,136,.5),inset 0 0 20px rgba(0,255,136,.15);border-color:#00ff88}
-@keyframes matchPulse{0%{transform:rotateY(180deg) scale(1)}50%{transform:rotateY(180deg) scale(1.08)}100%{transform:rotateY(180deg) scale(1)}}
-.card-face{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid transparent;transition:box-shadow .3s,border-color .3s}
-.card-face.back{background:linear-gradient(135deg,#1a1a4a,#2a1a5a);border-color:rgba(0,212,255,.2);box-shadow:0 4px 16px rgba(0,0,0,.4)}
-.card-face.back::after{content:'?';font-size:28px;font-weight:700;color:rgba(0,212,255,.4)}
-.card-face.front{background:#12122a;border-color:rgba(255,255,255,.08);transform:rotateY(180deg);font-size:34px}
-.card-face.front.wrong{animation:shake .4s ease;border-color:#ff4444;box-shadow:0 0 16px rgba(255,68,68,.3)}
-@keyframes shake{0%,100%{transform:rotateY(180deg) translateX(0)}20%{transform:rotateY(180deg) translateX(-6px)}40%{transform:rotateY(180deg) translateX(6px)}60%{transform:rotateY(180deg) translateX(-4px)}80%{transform:rotateY(180deg) translateX(4px)}}
+.card-face{
+position:absolute;inset:0;border-radius:12px;
+backface-visibility:hidden;
+display:flex;align-items:center;justify-content:center;
+border:2px solid transparent;
+transition:box-shadow .3s,border-color .3s;
+overflow:hidden
+}
+.card-face.back{
+background:linear-gradient(135deg,#1a1a4a,#2a1a5a);
+border-color:rgba(0,212,255,.25);
+box-shadow:0 0 15px rgba(0,212,255,.08),inset 0 0 15px rgba(0,212,255,.03)
+}
+.card-face.back::before{
+content:'';position:absolute;inset:5px;border-radius:8px;
+border:1px solid rgba(0,212,255,.08);
+background:repeating-conic-gradient(rgba(0,212,255,.04) 0% 25%,transparent 0% 50%) 0 0 / 16px 16px
+}
+.card-face.back::after{
+content:'?';position:relative;z-index:1;
+font-size:28px;font-weight:700;
+color:rgba(0,212,255,.35);
+text-shadow:0 0 12px rgba(0,212,255,.2)
+}
+.card-face.front{
+background:linear-gradient(135deg,#12122a,#1a1a3a);
+border-color:rgba(255,255,255,.06);
+transform:rotateY(180deg);
+font-size:40px
+}
+.card.flipped .card-face.front{
+border-color:rgba(0,212,255,.3);
+box-shadow:0 0 20px rgba(0,212,255,.1),inset 0 0 20px rgba(0,212,255,.05)
+}
+.card.matched{pointer-events:none}
+.card.matched .card-face.front{
+border-color:#00ff88;
+box-shadow:0 0 30px rgba(0,255,136,.4),inset 0 0 20px rgba(0,255,136,.1);
+animation:matchPulse .6s ease
+}
+@keyframes matchPulse{
+0%{transform:rotateY(180deg) scale(1)}
+50%{transform:rotateY(180deg) scale(1.1)}
+100%{transform:rotateY(180deg) scale(1)}
+}
+.card.wrong .card-face.front{
+border-color:#ff4444;
+box-shadow:0 0 24px rgba(255,68,68,.3),inset 0 0 16px rgba(255,68,68,.1)
+}
+.card.wrong .card-emoji{animation:shake .4s ease}
+@keyframes shake{
+0%,100%{transform:translateX(0)}
+20%{transform:translateX(-8px)}
+40%{transform:translateX(8px)}
+60%{transform:translateX(-5px)}
+80%{transform:translateX(5px)}
+}
 .card.disabled{pointer-events:none}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:10;opacity:0;pointer-events:none;transition:opacity .4s}
+.overlay{
+position:fixed;inset:0;
+background:rgba(0,0,0,.75);
+display:flex;align-items:center;justify-content:center;
+z-index:100;opacity:0;pointer-events:none;
+transition:opacity .4s
+}
 .overlay.show{opacity:1;pointer-events:auto}
-.modal{background:#12122a;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px;text-align:center;max-width:340px;width:90%;transform:scale(.9);transition:transform .4s cubic-bezier(.4,0,.2,1)}
-.overlay.show .modal{transform:scale(1)}
+.modal{
+background:rgba(18,18,42,.9);
+backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+border:1px solid rgba(255,255,255,.1);border-radius:20px;
+padding:32px 28px;text-align:center;
+max-width:340px;width:90%;
+transform:scale(.8) translateY(20px);
+transition:transform .5s cubic-bezier(.34,1.56,.64,1);
+position:relative;overflow:hidden;z-index:101
+}
+.overlay.show .modal{transform:scale(1) translateY(0)}
+.modal .trophy{font-size:56px;margin-bottom:8px}
 .modal h2{font-size:28px;margin-bottom:4px;background:linear-gradient(135deg,#00d4ff,#7b2ff7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.modal .trophy{font-size:48px;margin-bottom:8px}
 .modal .summary{margin:16px 0;font-size:15px;line-height:1.8;color:#aaa}
 .modal .summary span{color:#fff;font-weight:600}
+.modal .stars-big{font-size:32px;letter-spacing:6px;margin:8px 0 12px;line-height:1}
+.modal .stars-big .star-on{color:#ffd700;text-shadow:0 0 12px rgba(255,215,0,.6)}
+.modal .stars-big .star-off{color:#333}
 .modal .btn{margin-top:8px}
-.tag{display:inline-block;background:#1a1a3a;border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:2px 8px;font-size:11px;color:#888;margin-left:6px}
+#particles{position:fixed;inset:0;z-index:102;pointer-events:none}
 @media(max-width:420px){
-  .container{padding:10px}
-  .grid{gap:5px}
-  .card-face{font-size:22px}
-  .card-face.front{font-size:26px}
-  .card-face.back::after{font-size:22px}
-  .stat{padding:6px 10px;min-width:60px}
-  .stat .value{font-size:18px}
-  .stats{gap:8px}
+.container{padding:10px}
+.grid{gap:5px}
+.card-face{font-size:14px}
+.card-face.front{font-size:32px}
+.card-face.back::after{font-size:22px}
+.stats{gap:6px}
+.stat{padding:6px 10px;min-width:60px}
+.stat .value{font-size:17px}
+.stat .stars{font-size:12px}
+.controls{gap:8px}
+.size-group .btn{padding:6px 12px;font-size:12px}
+.btn{padding:6px 14px;font-size:12px}
 }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>Memory</h1>
-  <p class="sub">Flip cards &amp; find all pairs</p>
-
-  <div class="stats">
-    <div class="stat"><div class="label">Moves</div><div class="value" id="moves">0</div></div>
-    <div class="stat"><div class="label">Time</div><div class="value" id="timer">0s</div></div>
-    <div class="stat"><div class="label">Pairs</div><div class="value" id="pairs">0/0</div></div>
-    <div class="stat"><div class="label">Best</div><div class="value best" id="best">—</div></div>
-  </div>
-
-  <div class="controls">
-    <button class="btn active" data-grid="4" id="btnEasy">4×4</button>
-    <button class="btn" data-grid="6" id="btnHard">6×6</button>
-    <button class="btn primary" id="btnNew">New Game</button>
-  </div>
-
-  <div class="grid grid-4" id="grid"></div>
+<h1>Memory</h1>
+<p class="sub">Flip cards &amp; find all pairs</p>
+<div class="stats">
+<div class="stat">
+<div class="label">Moves</div>
+<div class="value" id="moves">0</div>
+<div class="stars" id="stars"></div>
 </div>
-
+<div class="stat">
+<div class="label">Time</div>
+<div class="value" id="timer">00:00</div>
+</div>
+<div class="stat">
+<div class="label">Pairs</div>
+<div class="value" id="pairs">0/0</div>
+</div>
+<div class="stat">
+<div class="label">Best</div>
+<div class="value best" id="best">&mdash;</div>
+</div>
+</div>
+<div class="controls">
+<div class="size-group">
+<button class="btn active" data-grid="4">4&times;4</button>
+<button class="btn" data-grid="6">6&times;6</button>
+</div>
+<button class="btn primary" id="btnNew">New Game</button>
+<button class="btn mute" id="btnMute" title="Toggle sound">&#x1F50A;</button>
+</div>
+<div class="grid grid-4" id="grid"></div>
+</div>
 <div class="overlay" id="overlay">
-  <div class="modal">
-    <div class="trophy">🎉</div>
-    <h2>You Win!</h2>
-    <div class="summary" id="summary"></div>
-    <button class="btn primary" id="btnReplay">Play Again</button>
-  </div>
+<div class="modal">
+<div class="trophy">&#x1F389;</div>
+<h2>You Win!</h2>
+<div class="stars-big" id="winStars"></div>
+<div class="summary" id="summary"></div>
+<button class="btn primary" id="btnReplay">Play Again</button>
 </div>
-
+</div>
+<canvas id="particles"></canvas>
 <script>
 const EMOJIS = ['🎮','🎯','🎪','🎨','🎭','🎸','🎲','🎰','🚀','🌈','🦄','🍕','🍀','🎃','👾','🤖','🐉','🦖','⚡','🔥','💎','🌟','🍄','🐱','🦊','🐼','🎉','🍩','🧩','🎳','🏆','🪐'];
-
 const GRID_CONFIGS = {4:{cols:4,pairs:8},6:{cols:6,pairs:18}};
+const STAR_THRESHOLDS = {4:{three:10,two:14},6:{three:24,two:34}};
 
 let state = {
-  gridSize: 4,
-  cards: [],
-  flipped: [],
-  matched: 0,
-  totalPairs: 8,
-  moves: 0,
-  timer: 0,
-  timerRunning: false,
-  timerInterval: null,
-  locked: false,
-  best: JSON.parse(localStorage.getItem('memoryBest')||'{}'),
+gridSize:4,cards:[],flipped:[],matched:0,totalPairs:8,
+moves:0,timer:0,timerRunning:false,timerInterval:null,
+locked:false,
+muted:JSON.parse(localStorage.getItem('memoryMuted')||'false'),
+best:JSON.parse(localStorage.getItem('memoryBest')||'{}'),
 };
 
-const $ = s => document.querySelector(s);
-const $$ = s => document.querySelectorAll(s);
+let audioCtx=null;
+let particles=[];
+let particleFrame=null;
 
-function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+
+function shuffle(a){
+for(let i=a.length-1;i>0;i--){let j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}
+return a
+}
+
+function getStars(moves,gridSize){
+const t=STAR_THRESHOLDS[gridSize];
+if(!t)return 1;
+if(moves<=t.three)return 3;
+if(moves<=t.two)return 2;
+return 1;
+}
+
+function starsHTML(count){
+let s='';
+for(let i=1;i<=3;i++)s+=`<span class="star-${i<=count?'on':'off'}">★</span>`;
+return s;
+}
+
+function initAudio(){
+if(!audioCtx){
+const C=window.AudioContext||window.webkitAudioContext;
+audioCtx=new C();
+}
+if(audioCtx.state==='suspended')audioCtx.resume();
+}
+
+function playSound(type){
+if(state.muted)return;
+initAudio();
+const ctx=audioCtx;
+const now=ctx.currentTime;
+if(type==='flip'){
+const o=ctx.createOscillator();const g=ctx.createGain();
+o.type='sine';o.frequency.value=700;
+g.gain.setValueAtTime(.2,now);g.gain.exponentialRampToValueAtTime(.001,now+.08);
+o.connect(g).connect(ctx.destination);o.start(now);o.stop(now+.08);
+}else if(type==='match'){
+[523,659].forEach((f,i)=>{
+const o=ctx.createOscillator();const g=ctx.createGain();
+o.type='sine';o.frequency.value=f;
+const t=now+i*.1;
+g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.15);
+o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+.15);
+});
+}else if(type==='mismatch'){
+const o=ctx.createOscillator();const g=ctx.createGain();
+o.type='square';o.frequency.value=180;
+g.gain.setValueAtTime(.15,now);g.gain.exponentialRampToValueAtTime(.001,now+.25);
+o.connect(g).connect(ctx.destination);o.start(now);o.stop(now+.25);
+}else if(type==='win'){
+[523,659,784,1047,784,1047].forEach((f,i)=>{
+const o=ctx.createOscillator();const g=ctx.createGain();
+o.type='sine';o.frequency.value=f;
+const t=now+i*.1;
+g.gain.setValueAtTime(.22,t);g.gain.exponentialRampToValueAtTime(.001,t+.18);
+o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+.18);
+});
+}
+}
+
+function startParticles(){
+const c=$('#particles');
+const ctx=c.getContext('2d');
+c.width=innerWidth;c.height=innerHeight;
+const colors=['#00d4ff','#7b2ff7','#ffd700','#00ff88','#ff6b6b','#ff9ff3','#ffd93d','#6c5ce7'];
+particles=[];
+for(let i=0;i<80;i++){
+particles.push({
+x:Math.random()*c.width,y:c.height+20,
+vx:(Math.random()-.5)*6,vy:-(Math.random()*8+4),
+size:Math.random()*8+4,
+color:colors[Math.floor(Math.random()*colors.length)],
+life:1,decay:Math.random()*.008+.004,
+rot:Math.random()*360,rotS:(Math.random()-.5)*10
+});
+}
+if(particleFrame)cancelAnimationFrame(particleFrame);
+(function anim(){
+ctx.clearRect(0,0,c.width,c.height);
+let alive=false;
+for(const p of particles){
+p.x+=p.vx;p.vy+=.15;p.y+=p.vy;p.life-=p.decay;p.rot+=p.rotS;
+if(p.life>0){
+alive=true;
+ctx.save();
+ctx.translate(p.x,p.y);
+ctx.rotate(p.rot*Math.PI/180);
+ctx.globalAlpha=p.life;
+ctx.fillStyle=p.color;
+ctx.shadowColor=p.color;
+ctx.shadowBlur=10;
+ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+ctx.restore();
+}
+}
+if(alive)particleFrame=requestAnimationFrame(anim);
+else{ctx.clearRect(0,0,c.width,c.height);particleFrame=null}
+})();
+}
 
 function initGame(){
-  clearInterval(state.timerInterval);
-  state.timerRunning=false;
-  state.moves=0;
-  state.matched=0;
-  state.timer=0;
-  state.flipped=[];
-  state.locked=false;
-  const cfg=GRID_CONFIGS[state.gridSize];
-  state.totalPairs=cfg.pairs;
-  const emojis=shuffle([...EMOJIS]).slice(0,cfg.pairs);
-  let deck=[];
-  emojis.forEach((e,i)=>{deck.push({id:i,emoji:e});deck.push({id:i,emoji:e})});
-  state.cards=shuffle(deck);
-  render();
-  updateStats();
+clearInterval(state.timerInterval);
+state.timerRunning=false;state.moves=0;state.matched=0;
+state.timer=0;state.flipped=[];state.locked=false;
+const cfg=GRID_CONFIGS[state.gridSize];
+state.totalPairs=cfg.pairs;
+const emojis=shuffle([...EMOJIS]).slice(0,cfg.pairs);
+let deck=[];
+emojis.forEach((e,i)=>{deck.push({id:i,emoji:e});deck.push({id:i,emoji:e})});
+state.cards=shuffle(deck);
+render();
+updateStats();
+cancelParticles();
+}
+
+function cancelParticles(){
+if(particleFrame){cancelAnimationFrame(particleFrame);particleFrame=null}
+const c=$('#particles');
+const ctx=c&&c.getContext('2d');
+if(ctx)ctx.clearRect(0,0,c.width,c.height);
 }
 
 function render(){
-  const grid=$('#grid');
-  grid.innerHTML='';
-  grid.className=`grid grid-${state.gridSize}`;
-  state.cards.forEach((card,i)=>{
-    const el=document.createElement('div');
-    el.className='card';
-    el.dataset.index=i;
-    el.innerHTML=`<div class="card-face back"></div><div class="card-face front">${card.emoji}</div>`;
-    grid.appendChild(el);
-  });
+const g=$('#grid');
+g.innerHTML='';
+g.className=`grid grid-${state.gridSize}`;
+state.cards.forEach((card,i)=>{
+const el=document.createElement('div');
+el.className='card';
+el.dataset.index=i;
+el.innerHTML=`<div class="card-face back"></div><div class="card-face front"><span class="card-emoji">${card.emoji}</span></div>`;
+g.appendChild(el);
+});
 }
 
 function flipCard(el,idx){
-  if(state.locked)return;
-  if(el.classList.contains('flipped')||el.classList.contains('matched'))return;
-  if(state.flipped.length>=2)return;
-  if(!state.timerRunning){state.timerRunning=true;state.timerInterval=setInterval(tick,1000)}
-  el.classList.add('flipped');
-  state.flipped.push(idx);
-  state.moves++;
-  updateStats();
-  if(state.flipped.length===2)checkMatch();
+if(state.locked)return;
+if(el.classList.contains('flipped')||el.classList.contains('matched'))return;
+if(state.flipped.length>=2)return;
+if(!state.timerRunning){state.timerRunning=true;state.timerInterval=setInterval(tick,1000)}
+el.classList.add('flipped');
+state.flipped.push(idx);
+playSound('flip');
+if(state.flipped.length===2){
+state.moves++;
+updateStats();
+checkMatch();
+}
 }
 
 function checkMatch(){
-  state.locked=true;
-  const [a,b]=state.flipped;
-  const ca=state.cards[a],cb=state.cards[b];
-  const ea=$$('.card')[a],eb=$$('.card')[b];
-  if(ca.id===cb.id){
-    state.matched++;
-    ea.classList.add('matched');eb.classList.add('matched');
-    state.flipped=[];
-    state.locked=false;
-    updateStats();
-    if(state.matched===state.totalPairs)win();
-  }else{
-    const fa=ea.querySelector('.front'),fb=eb.querySelector('.front');
-    fa.classList.add('wrong');fb.classList.add('wrong');
-    setTimeout(()=>{
-      ea.classList.remove('flipped');eb.classList.remove('flipped');
-      fa.classList.remove('wrong');fb.classList.remove('wrong');
-      state.flipped=[];
-      state.locked=false;
-    },600);
-  }
+state.locked=true;
+const[a,b]=state.flipped;
+const ca=state.cards[a],cb=state.cards[b];
+const els=$$('.card');
+const ea=els[a],eb=els[b];
+if(ca.id===cb.id){
+state.matched++;
+ea.classList.add('matched');eb.classList.add('matched');
+state.flipped=[];state.locked=false;
+updateStats();
+playSound('match');
+if(state.matched===state.totalPairs)win();
+}else{
+ea.classList.add('wrong');eb.classList.add('wrong');
+playSound('mismatch');
+setTimeout(()=>{
+ea.classList.remove('flipped','wrong');
+eb.classList.remove('flipped','wrong');
+state.flipped=[];state.locked=false;
+},700);
+}
 }
 
 function tick(){
-  state.timer++;
-  updateStats();
+state.timer++;
+updateStats();
+}
+
+function fmt(secs){
+const m=String(Math.floor(secs/60)).padStart(2,'0');
+const s=String(secs%60).padStart(2,'0');
+return m+':'+s;
 }
 
 function updateStats(){
-  $('#moves').textContent=state.moves;
-  $('#timer').textContent=state.timer+'s';
-  const kv=state.matched===0?'0/0':state.matched+'/'+state.totalPairs;
-  $('#pairs').textContent=kv;
-  const key=state.gridSize+'x'+state.gridSize;
-  const b=state.best[key];
-  $('#best').textContent=b?b.moves+' moves':'\u2014';
+$('#moves').textContent=state.moves;
+$('#timer').textContent=fmt(state.timer);
+$('#pairs').textContent=state.matched===0?'0/0':state.matched+'/'+state.totalPairs;
+if(state.moves>0){
+$('#stars').innerHTML=starsHTML(getStars(state.moves,state.gridSize));
+}else{$('#stars').innerHTML=''}
+const key=state.gridSize+'x'+state.gridSize;
+const b=state.best[key];
+if(b){
+const s=getStars(b.moves,state.gridSize);
+$('#best').innerHTML=b.moves+' '+starsHTML(s);
+}else{$('#best').textContent='—'}
 }
 
 function win(){
-  clearInterval(state.timerInterval);
-  state.timerRunning=false;
-  const key=state.gridSize+'x'+state.gridSize;
-  const cur={moves:state.moves,time:state.timer};
-  if(!state.best[key]||state.moves<state.best[key].moves||(state.moves===state.best[key].moves&&state.timer<state.best[key].time)){
-    state.best[key]=cur;
-    localStorage.setItem('memoryBest',JSON.stringify(state.best));
-  }
-  updateStats();
-  setTimeout(()=>{
-    const isBest=state.moves===state.best[key].moves&&state.timer===state.best[key].time;
-    $('#summary').innerHTML=
-      `Matched <span>${state.totalPairs}</span> pairs<br>`+
-      `in <span>${state.moves}</span> moves &amp; <span>${state.timer}s</span>`+
-      (isBest?'<br>🏆 <strong>New Best!</strong>':'');
-    $('#overlay').classList.add('show');
-  },500);
+clearInterval(state.timerInterval);
+state.timerRunning=false;
+playSound('win');
+const key=state.gridSize+'x'+state.gridSize;
+const cur={moves:state.moves,time:state.timer};
+const curStars=getStars(cur.moves,state.gridSize);
+let newBest=false;
+if(!state.best[key]||cur.moves<state.best[key].moves||(cur.moves===state.best[key].moves&&cur.time<state.best[key].time)){
+state.best[key]=cur;
+localStorage.setItem('memoryBest',JSON.stringify(state.best));
+newBest=true;
+}
+updateStats();
+setTimeout(()=>{
+const s=getStars(state.moves,state.gridSize);
+$('#winStars').innerHTML=starsHTML(s);
+$('#summary').innerHTML=
+'Matched <span>'+state.totalPairs+'</span> pairs<br>'+
+'in <span>'+state.moves+'</span> moves &amp; <span>'+fmt(state.timer)+'</span>'+
+(newBest?'<br>🏆 <strong>New Best!</strong>':'');
+$('#overlay').classList.add('show');
+startParticles();
+},600);
 }
 
-// Event delegation for clicks
 $('#grid').addEventListener('click',e=>{
-  const card=e.target.closest('.card');
-  if(!card)return;
-  flipCard(card,+card.dataset.index);
+const c=e.target.closest('.card');
+if(!c)return;
+flipCard(c,+c.dataset.index);
 });
 
 $('#btnNew').addEventListener('click',()=>{
-  $('#overlay').classList.remove('show');
-  initGame();
+$('#overlay').classList.remove('show');
+cancelParticles();
+initGame();
 });
 
 $('#btnReplay').addEventListener('click',()=>{
-  $('#overlay').classList.remove('show');
-  initGame();
+$('#overlay').classList.remove('show');
+cancelParticles();
+initGame();
 });
 
-$('#btnEasy').addEventListener('click',function(){
-  if(state.gridSize===4)return;
-  state.gridSize=4;
-  $('#btnEasy').classList.add('active');
-  $('#btnHard').classList.remove('active');
-  $('#overlay').classList.remove('show');
-  initGame();
+$$('.size-group .btn').forEach(btn=>{
+btn.addEventListener('click',function(){
+const gs=+this.dataset.grid;
+if(gs===state.gridSize)return;
+state.gridSize=gs;
+$$('.size-group .btn').forEach(b=>b.classList.remove('active'));
+this.classList.add('active');
+$('#overlay').classList.remove('show');
+cancelParticles();
+initGame();
+});
 });
 
-$('#btnHard').addEventListener('click',function(){
-  if(state.gridSize===6)return;
-  state.gridSize=6;
-  $('#btnHard').classList.add('active');
-  $('#btnEasy').classList.remove('active');
-  $('#overlay').classList.remove('show');
-  initGame();
+$('#btnMute').addEventListener('click',function(){
+state.muted=!state.muted;
+this.classList.toggle('muted');
+this.textContent=state.muted?'🔇':'🔊';
+localStorage.setItem('memoryMuted',JSON.stringify(state.muted));
 });
+
+addEventListener('resize',()=>{
+const c=$('#particles');
+if(c){c.width=innerWidth;c.height=innerHeight}
+});
+
+if(state.muted){$('#btnMute').classList.add('muted');$('#btnMute').textContent='🔇'}
 
 initGame();
 </script>
