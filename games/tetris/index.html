@@ -431,7 +431,7 @@ const bgMusic = {
     if(!this.ctx){
       this.ctx=new(window.AudioContext||window.webkitAudioContext)();
       this._master=this.ctx.createGain();
-      this._master.gain.value=0.12;
+      this._master.gain.value=0.25;
       this._master.connect(this.ctx.destination);
     }
     if(this.ctx.state==='suspended') this.ctx.resume();
@@ -849,6 +849,7 @@ function lockPiece(){
   spawnLockParticles(currentPiece);
   placePiece(currentPiece.shape,currentPiece.x,currentPiece.y,currentPiece.color);
   playSound('lock');
+  currentPiece=null;
   const fullRows=findFullRows();
   if(fullRows.length>0){
     clearing={rows:fullRows,frame:0,done:false};
@@ -856,7 +857,6 @@ function lockPiece(){
   } else {
     spawnNewPiece();
   }
-  currentPiece=null;
   updateHUD();
 }
 
@@ -1331,12 +1331,6 @@ document.addEventListener('visibilitychange',()=>{
       paused=true;
       document.getElementById('pause-overlay').classList.add('show');
       bgMusic.stop();
-    }
-  } else {
-    if(paused&&!gameOver){
-      paused=false;
-      document.getElementById('pause-overlay').classList.remove('show');
-      bgMusic.start();
     }
   }
 });

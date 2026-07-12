@@ -582,7 +582,7 @@ const bgMusic={
       const ctx=getAudioCtx();
       this.playing=true;
       this.gainNode=ctx.createGain();
-      this.gainNode.gain.value=0.035;
+      this.gainNode.gain.value=0.20;
       this.gainNode.connect(ctx.destination);
       const now=ctx.currentTime;
       const chord=[261.63,329.63,392.00,523.25];

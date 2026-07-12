@@ -116,7 +116,7 @@ const bgMusic = {
     try{this.ctx=getCtx()}catch(e){return}
     const ctx=this.ctx,now=ctx.currentTime;
     const master=ctx.createGain();
-    master.gain.value=muted?0:0.06;
+    master.gain.value=muted?0:0.20;
     master.connect(ctx.destination);
     this.master=master;
 
@@ -447,7 +447,7 @@ muteBtn.addEventListener('click',()=>{
   muted=!muted;
   muteBtn.textContent=muted?'🔇':'🔊';
   if(bgMusic.master){
-    bgMusic.master.gain.value=muted?0:(bgMusic.playing?0.06:0);
+    bgMusic.master.gain.value=muted?0:(bgMusic.playing?0.20:0);
   }
 });
 
@@ -460,7 +460,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='1')init('easy');
   if(e.key==='2')init('medium');
   if(e.key==='3')init('hard');
-  if(e.key==='m'||e.key==='M'){muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';if(bgMusic.master)bgMusic.master.gain.value=muted?0:(bgMusic.playing?0.06:0)}
+  if(e.key==='m'||e.key==='M'){muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';if(bgMusic.master)bgMusic.master.gain.value=muted?0:(bgMusic.playing?0.20:0)}
 });
 
 init('easy');

@@ -343,7 +343,7 @@ init(){
 if(!this.ctx){
 this.ctx=new (window.AudioContext||window.webkitAudioContext)();
 this.gain=this.ctx.createGain();
-this.gain.gain.value=0.035;
+this.gain.gain.value=0.20;
 this.gain.connect(this.ctx.destination);
 }
 if(this.ctx.state==='suspended')this.ctx.resume();

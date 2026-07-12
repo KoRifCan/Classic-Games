@@ -244,7 +244,7 @@ const bgMusic={
       const now=this.ctx.currentTime;
       const master=this.ctx.createGain();
       master.gain.setValueAtTime(0,now);
-      master.gain.linearRampToValueAtTime(0.04,now+2);
+      master.gain.linearRampToValueAtTime(0.20,now+2);
       master.connect(this.ctx.destination);
       this.nodes.push(master);
 
@@ -626,12 +626,11 @@ diffBtns.forEach(b=>{
 });
 
 muteBtn.addEventListener('click',function(e){
-  e.stopPropagation();
   muted=!muted;
   saveMuted();
   updateMuteBtn();
   if(muted)bgMusic.stop();
-  else bgMusic.start();
+  else {startBG();bgMusic.start();}
 });
 
 window.addEventListener('resize',()=>{

@@ -1051,7 +1051,12 @@ function setupTouch(c){
     if(tx>=muteBtn.x-4&&tx<=muteBtn.x+muteBtn.w+4&&ty>=muteBtn.y-4&&ty<=muteBtn.y+muteBtn.h+4){
       toggleMute();return
     }
-    if(game.state==='menu'||game.state==='gameover'){restartGame();return}
+    if(game.state==='menu'||game.state==='gameover'){
+      restartGame();
+      if(touchId===null) touchId=t.identifier;touchStartX=t.clientX;
+      game.player.autoFire=true;
+      return;
+    }
     if(paused)return;
     if(touchId===null){
       touchId=t.identifier;touchStartX=t.clientX;
