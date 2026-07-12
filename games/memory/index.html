@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Memory</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a1a;color:#e0e0e0;min-height:100vh;display:flex;justify-content:center;align-items:center}
+.container{width:100%;max-width:600px;padding:16px;text-align:center}
+h1{font-size:26px;background:linear-gradient(135deg,#00d4ff,#7b2ff7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px}
+.sub{color:#666;font-size:13px;margin-bottom:12px}
+.stats{display:flex;justify-content:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.stat{background:#12122a;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px 16px;min-width:80px}
+.stat .label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.5px}
+.stat .value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .value.best{color:#ffd700}
+.controls{display:flex;justify-content:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.btn{background:#1a1a3a;border:1px solid rgba(255,255,255,.1);color:#e0e0e0;padding:8px 18px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .2s;font-family:inherit}
+.btn:hover{background:#2a2a5a;border-color:#00d4ff}
+.btn.primary{background:linear-gradient(135deg,#00d4ff,#7b2ff7);border:none;font-weight:600}
+.btn.primary:hover{opacity:.85}
+.btn.active{border-color:#00d4ff;background:#2a2a5a}
+.grid{display:grid;justify-content:center;gap:8px;margin:0 auto;max-width:500px;perspective:1000px}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.grid-6{grid-template-columns:repeat(6,1fr)}
+.card{aspect-ratio:3/4;cursor:pointer;position:relative;transform-style:preserve-3d;transition:transform .4s cubic-bezier(.4,0,.2,1);border-radius:10px;user-select:none}
+.card.flipped{transform:rotateY(180deg)}
+.card.matched{animation:matchPulse .5s ease}
+.card.matched .card-face.front{box-shadow:0 0 20px rgba(0,255,136,.5),inset 0 0 20px rgba(0,255,136,.15);border-color:#00ff88}
+@keyframes matchPulse{0%{transform:rotateY(180deg) scale(1)}50%{transform:rotateY(180deg) scale(1.08)}100%{transform:rotateY(180deg) scale(1)}}
+.card-face{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid transparent;transition:box-shadow .3s,border-color .3s}
+.card-face.back{background:linear-gradient(135deg,#1a1a4a,#2a1a5a);border-color:rgba(0,212,255,.2);box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.card-face.back::after{content:'?';font-size:28px;font-weight:700;color:rgba(0,212,255,.4)}
+.card-face.front{background:#12122a;border-color:rgba(255,255,255,.08);transform:rotateY(180deg);font-size:34px}
+.card-face.front.wrong{animation:shake .4s ease;border-color:#ff4444;box-shadow:0 0 16px rgba(255,68,68,.3)}
+@keyframes shake{0%,100%{transform:rotateY(180deg) translateX(0)}20%{transform:rotateY(180deg) translateX(-6px)}40%{transform:rotateY(180deg) translateX(6px)}60%{transform:rotateY(180deg) translateX(-4px)}80%{transform:rotateY(180deg) translateX(4px)}}
+.card.disabled{pointer-events:none}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:10;opacity:0;pointer-events:none;transition:opacity .4s}
+.overlay.show{opacity:1;pointer-events:auto}
+.modal{background:#12122a;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:32px;text-align:center;max-width:340px;width:90%;transform:scale(.9);transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.overlay.show .modal{transform:scale(1)}
+.modal h2{font-size:28px;margin-bottom:4px;background:linear-gradient(135deg,#00d4ff,#7b2ff7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal .trophy{font-size:48px;margin-bottom:8px}
+.modal .summary{margin:16px 0;font-size:15px;line-height:1.8;color:#aaa}
+.modal .summary span{color:#fff;font-weight:600}
+.modal .btn{margin-top:8px}
+.tag{display:inline-block;background:#1a1a3a;border:1px solid rgba(255,255,255,.06);border-radius:6px;padding:2px 8px;font-size:11px;color:#888;margin-left:6px}
+@media(max-width:420px){
+  .container{padding:10px}
+  .grid{gap:5px}
+  .card-face{font-size:22px}
+  .card-face.front{font-size:26px}
+  .card-face.back::after{font-size:22px}
+  .stat{padding:6px 10px;min-width:60px}
+  .stat .value{font-size:18px}
+  .stats{gap:8px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Memory</h1>
+  <p class="sub">Flip cards &amp; find all pairs</p>
+
+  <div class="stats">
+    <div class="stat"><div class="label">Moves</div><div class="value" id="moves">0</div></div>
+    <div class="stat"><div class="label">Time</div><div class="value" id="timer">0s</div></div>
+    <div class="stat"><div class="label">Pairs</div><div class="value" id="pairs">0/0</div></div>
+    <div class="stat"><div class="label">Best</div><div class="value best" id="best">—</div></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn active" data-grid="4" id="btnEasy">4×4</button>
+    <button class="btn" data-grid="6" id="btnHard">6×6</button>
+    <button class="btn primary" id="btnNew">New Game</button>
+  </div>
+
+  <div class="grid grid-4" id="grid"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="trophy">🎉</div>
+    <h2>You Win!</h2>
+    <div class="summary" id="summary"></div>
+    <button class="btn primary" id="btnReplay">Play Again</button>
+  </div>
+</div>
+
+<script>
+const EMOJIS = ['🎮','🎯','🎪','🎨','🎭','🎸','🎲','🎰','🚀','🌈','🦄','🍕','🍀','🎃','👾','🤖','🐉','🦖','⚡','🔥','💎','🌟','🍄','🐱','🦊','🐼','🎉','🍩','🧩','🎳','🏆','🪐'];
+
+const GRID_CONFIGS = {4:{cols:4,pairs:8},6:{cols:6,pairs:18}};
+
+let state = {
+  gridSize: 4,
+  cards: [],
+  flipped: [],
+  matched: 0,
+  totalPairs: 8,
+  moves: 0,
+  timer: 0,
+  timerRunning: false,
+  timerInterval: null,
+  locked: false,
+  best: JSON.parse(localStorage.getItem('memoryBest')||'{}'),
+};
+
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function initGame(){
+  clearInterval(state.timerInterval);
+  state.timerRunning=false;
+  state.moves=0;
+  state.matched=0;
+  state.timer=0;
+  state.flipped=[];
+  state.locked=false;
+  const cfg=GRID_CONFIGS[state.gridSize];
+  state.totalPairs=cfg.pairs;
+  const emojis=shuffle([...EMOJIS]).slice(0,cfg.pairs);
+  let deck=[];
+  emojis.forEach((e,i)=>{deck.push({id:i,emoji:e});deck.push({id:i,emoji:e})});
+  state.cards=shuffle(deck);
+  render();
+  updateStats();
+}
+
+function render(){
+  const grid=$('#grid');
+  grid.innerHTML='';
+  grid.className=`grid grid-${state.gridSize}`;
+  state.cards.forEach((card,i)=>{
+    const el=document.createElement('div');
+    el.className='card';
+    el.dataset.index=i;
+    el.innerHTML=`<div class="card-face back"></div><div class="card-face front">${card.emoji}</div>`;
+    grid.appendChild(el);
+  });
+}
+
+function flipCard(el,idx){
+  if(state.locked)return;
+  if(el.classList.contains('flipped')||el.classList.contains('matched'))return;
+  if(state.flipped.length>=2)return;
+  if(!state.timerRunning){state.timerRunning=true;state.timerInterval=setInterval(tick,1000)}
+  el.classList.add('flipped');
+  state.flipped.push(idx);
+  state.moves++;
+  updateStats();
+  if(state.flipped.length===2)checkMatch();
+}
+
+function checkMatch(){
+  state.locked=true;
+  const [a,b]=state.flipped;
+  const ca=state.cards[a],cb=state.cards[b];
+  const ea=$$('.card')[a],eb=$$('.card')[b];
+  if(ca.id===cb.id){
+    state.matched++;
+    ea.classList.add('matched');eb.classList.add('matched');
+    state.flipped=[];
+    state.locked=false;
+    updateStats();
+    if(state.matched===state.totalPairs)win();
+  }else{
+    const fa=ea.querySelector('.front'),fb=eb.querySelector('.front');
+    fa.classList.add('wrong');fb.classList.add('wrong');
+    setTimeout(()=>{
+      ea.classList.remove('flipped');eb.classList.remove('flipped');
+      fa.classList.remove('wrong');fb.classList.remove('wrong');
+      state.flipped=[];
+      state.locked=false;
+    },600);
+  }
+}
+
+function tick(){
+  state.timer++;
+  updateStats();
+}
+
+function updateStats(){
+  $('#moves').textContent=state.moves;
+  $('#timer').textContent=state.timer+'s';
+  const kv=state.matched===0?'0/0':state.matched+'/'+state.totalPairs;
+  $('#pairs').textContent=kv;
+  const key=state.gridSize+'x'+state.gridSize;
+  const b=state.best[key];
+  $('#best').textContent=b?b.moves+' moves':'\u2014';
+}
+
+function win(){
+  clearInterval(state.timerInterval);
+  state.timerRunning=false;
+  const key=state.gridSize+'x'+state.gridSize;
+  const cur={moves:state.moves,time:state.timer};
+  if(!state.best[key]||state.moves<state.best[key].moves||(state.moves===state.best[key].moves&&state.timer<state.best[key].time)){
+    state.best[key]=cur;
+    localStorage.setItem('memoryBest',JSON.stringify(state.best));
+  }
+  updateStats();
+  setTimeout(()=>{
+    const isBest=state.moves===state.best[key].moves&&state.timer===state.best[key].time;
+    $('#summary').innerHTML=
+      `Matched <span>${state.totalPairs}</span> pairs<br>`+
+      `in <span>${state.moves}</span> moves &amp; <span>${state.timer}s</span>`+
+      (isBest?'<br>🏆 <strong>New Best!</strong>':'');
+    $('#overlay').classList.add('show');
+  },500);
+}
+
+// Event delegation for clicks
+$('#grid').addEventListener('click',e=>{
+  const card=e.target.closest('.card');
+  if(!card)return;
+  flipCard(card,+card.dataset.index);
+});
+
+$('#btnNew').addEventListener('click',()=>{
+  $('#overlay').classList.remove('show');
+  initGame();
+});
+
+$('#btnReplay').addEventListener('click',()=>{
+  $('#overlay').classList.remove('show');
+  initGame();
+});
+
+$('#btnEasy').addEventListener('click',function(){
+  if(state.gridSize===4)return;
+  state.gridSize=4;
+  $('#btnEasy').classList.add('active');
+  $('#btnHard').classList.remove('active');
+  $('#overlay').classList.remove('show');
+  initGame();
+});
+
+$('#btnHard').addEventListener('click',function(){
+  if(state.gridSize===6)return;
+  state.gridSize=6;
+  $('#btnHard').classList.add('active');
+  $('#btnEasy').classList.remove('active');
+  $('#overlay').classList.remove('show');
+  initGame();
+});
+
+initGame();
+</script>
+</body>
+</html>
