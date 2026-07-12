@@ -458,6 +458,7 @@ const bgMusic = {
   },
 
   _schedule(){
+    if(muted) return;
     if(!this.playing) return;
     while(this._nextTime<this.ctx.currentTime+this._ahead){
       this._playStep(this._step,this._nextTime);
@@ -800,7 +801,8 @@ function moveDown(){
   if(!currentPiece||gameOver||paused||clearing) return false;
   if(isValidPosition(currentPiece.shape,currentPiece.x,currentPiece.y+1)){
     currentPiece.y++;
-    lockTimer=0;
+    resetLockTimer();
+    dropAccum=0;
     return true;
   }
   return false;
@@ -1181,17 +1183,23 @@ function togglePause(){
   if(gameOver) return;
   paused=!paused;
   document.getElementById('pause-overlay').classList.toggle('show',paused);
-  if(paused) bgMusic.stop();
+  if(paused){
+    bgMusic.stop();
+    for(const k of Object.keys(dasState)) stopDAS(k);
+  }
   else bgMusic.start();
 }
 
+let _wasPaused=false;
 function toggleHelp(){
   const el=document.getElementById('help-overlay');
   const shown=el.classList.toggle('show');
-  if(shown&&!paused&&!gameOver) paused=true;
-  else if(!shown&&paused&&!gameOver){
+  if(shown){
+    _wasPaused=paused;
+    if(!paused&&!gameOver) paused=true;
+  } else if(!shown&&!gameOver){
     if(document.getElementById('pause-overlay').classList.contains('show')) return;
-    paused=false;
+    paused=_wasPaused;
   }
 }
 
@@ -1331,6 +1339,7 @@ document.addEventListener('visibilitychange',()=>{
       paused=true;
       document.getElementById('pause-overlay').classList.add('show');
       bgMusic.stop();
+      for(const k of Object.keys(dasState)) stopDAS(k);
     }
   }
 });

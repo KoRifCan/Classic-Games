@@ -530,7 +530,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   function gameLoop(){
     update();
     draw();
-    animId=requestAnimationFrame(gameLoop);
+    if(state!=='gameover') animId=requestAnimationFrame(gameLoop);
   }
 
   function startGame(){
@@ -555,6 +555,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   }
 
   document.addEventListener('keydown',e=>{
+    if(e.repeat) return;
     if(e.key===' '||e.key==='ArrowUp'||e.key==='w'||e.key==='W'){
       e.preventDefault();
       handleAction();

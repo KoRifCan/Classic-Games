@@ -157,7 +157,7 @@ const bgMusic = {
   start(){
     this._create();
     if(!this.playing&&this.master){
-      this.master.gain.linearRampToValueAtTime(muted?0:0.06,this.ctx.currentTime+0.3);
+      this.master.gain.linearRampToValueAtTime(muted?0:0.20,this.ctx.currentTime+0.3);
       this.playing=true;
     }
   },
@@ -173,6 +173,7 @@ const bgMusic = {
 function init(m){
   mode=m;const cfg=MODES[m];R=cfg.r;C=cfg.c;M=cfg.m;
   over=false;won=false;fc=true;rev=0;flags=0;timer=0;th=false;
+  document.querySelectorAll('.confetti').forEach(el=>el.remove());
   if(ti){clearInterval(ti);ti=null}
   brd=[];el=[];
   for(let r=0;r<R;r++){brd[r]=[];el[r]=[];for(let c=0;c<C;c++)brd[r][c]={m:false,rv:false,f:false,a:0}}
@@ -291,6 +292,7 @@ function checkWin(){return rev===R*C-M}
 
 function toggleFlag(r,c){
   if(over||won||brd[r][c].rv)return;
+  if(flags>=M&&!brd[r][c].f)return;
   if(fc)bgMusic.start();
   const cell=brd[r][c],e=el[r][c];
   if(cell.f){cell.f=false;flags--;e.classList.remove('flag');e.textContent=''}
@@ -375,13 +377,12 @@ function spawnExplosionParticles(r,c){
 board.addEventListener('click',e=>{
   if(th){th=false;return}
   const g=getCell(e);if(!g)return;
+  if(e.ctrlKey||e.metaKey){toggleFlag(g.row,g.col);return}
   reveal(g.row,g.col);
 });
 
 board.addEventListener('contextmenu',e=>{
   e.preventDefault();
-  const g=getCell(e);if(!g)return;
-  toggleFlag(g.row,g.col);
 });
 
 board.addEventListener('mousedown',e=>{
@@ -455,7 +456,7 @@ muteBtn.addEventListener('click',()=>{
 let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(resize,150)});
 
 // Keyboard shortcuts
-document.addEventListener('keydown',e=>{
+document.addEventListener('keydown',e=>{if(e.repeat)return;
   if(e.key==='r'||e.key==='R')resetGame();
   if(e.key==='1')init('easy');
   if(e.key==='2')init('medium');

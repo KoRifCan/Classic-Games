@@ -138,12 +138,16 @@ o.start(t);o.stop(t+0.45);
 }
 
 muteBtn.addEventListener('pointerdown',(e)=>{
-e.stopPropagation();
-muted=!muted;
-muteBtn.textContent=muted?'\u2715':'\u266B';
-muteBtn.classList.toggle('muted',muted);
-if(bgMusic._playing&&muted)bgMusic.stop();
-else if(!bgMusic._playing&&!muted&&audioStarted)bgMusic.start();
+  e.stopPropagation();
+  muted=!muted;
+  muteBtn.textContent=muted?'\u2715':'\u266B';
+  muteBtn.classList.toggle('muted',muted);
+  if(muted){
+    bgMusic.stop();
+  } else {
+    initAudio();
+    bgMusic.start();
+  }
 });
 
 let gameState='idle';
@@ -262,38 +266,40 @@ return null;
 }
 
 function flap(){
-if(inputBlocked)return;
-inputBlocked=true;
-setTimeout(()=>inputBlocked=false,150);
+  if(!audioStarted){
+    initAudio();
+    bgMusic.start();
+  }
 
-if(!audioStarted){
-initAudio();
-bgMusic.start();
-}
+  if(gameState==='gameover'){
+    reset();
+    gameState='playing';
+    bird.vel=FLAP_VEL;
+    bird.targetRot=MIN_ANGLE;
+    spawnParticles(bird.x+bird.w/2,bird.y+bird.h/2);
+    playSound('flap');
+    return;
+  }
 
-if(gameState==='idle'){
-gameState='playing';
-reset();
-bird.vel=FLAP_VEL;
-bird.targetRot=MIN_ANGLE;
-spawnParticles(bird.x+bird.w/2,bird.y+bird.h/2);
-playSound('flap');
-return;
-}
-if(gameState==='playing'){
-bird.vel=FLAP_VEL;
-bird.targetRot=MIN_ANGLE;
-spawnParticles(bird.x+bird.w/2,bird.y+bird.h/2);
-playSound('flap');
-}
-if(gameState==='gameover'){
-reset();
-gameState='playing';
-bird.vel=FLAP_VEL;
-bird.targetRot=MIN_ANGLE;
-spawnParticles(bird.x+bird.w/2,bird.y+bird.h/2);
-playSound('flap');
-}
+  if(inputBlocked)return;
+  inputBlocked=true;
+  setTimeout(()=>inputBlocked=false,150);
+
+  if(gameState==='idle'){
+    gameState='playing';
+    reset();
+    bird.vel=FLAP_VEL;
+    bird.targetRot=MIN_ANGLE;
+    spawnParticles(bird.x+bird.w/2,bird.y+bird.h/2);
+    playSound('flap');
+    return;
+  }
+  if(gameState==='playing'){
+    bird.vel=FLAP_VEL;
+    bird.targetRot=MIN_ANGLE;
+    spawnParticles(bird.x+bird.w/2,bird.y+bird.h/2);
+    playSound('flap');
+  }
 }
 
 function spawnParticles(x,y){
@@ -334,104 +340,104 @@ localStorage.setItem('flappy_high',highScore);
 }
 }
 
-function update(){
-frame++;
+function update(dt){
+  frame++;
 
-if(gameState==='idle'){
-bird.y=260+Math.sin(frame*0.04)*6;
-bird.targetRot=0;
-bird.rot+=(-bird.rot)*0.12;
-wingPhase+=0.04;
-groundOffset=(groundOffset+GROUND_SPEED*0.6)%24;
-groundOffset2=(groundOffset2+GROUND_SPEED*0.3)%48;
-return;
-}
+  if(gameState==='idle'){
+    bird.y=260+Math.sin(frame*0.04)*6;
+    bird.targetRot=0;
+    bird.rot+=(-bird.rot)*0.12;
+    wingPhase+=0.04;
+    groundOffset=(groundOffset+GROUND_SPEED*0.6*dt)%24;
+    groundOffset2=(groundOffset2+GROUND_SPEED*0.3*dt)%48;
+    return;
+  }
 
-if(gameState==='gameover'){
-bird.vel+=GRAVITY;
-if(bird.vel>MAX_FALL)bird.vel=MAX_FALL;
-bird.y+=bird.vel;
-if(bird.vel>2)bird.targetRot=Math.min(MAX_ANGLE,bird.vel*6);
-bird.rot+=(bird.targetRot-bird.rot)*0.12;
-groundOffset=(groundOffset+GROUND_SPEED*0.6)%24;
-groundOffset2=(groundOffset2+GROUND_SPEED*0.3)%48;
-for(let i=particles.length-1;i>=0;i--){
-const p=particles[i];
-p.x+=p.vx;p.y+=p.vy;
-p.vy+=0.05;p.life-=p.decay;
-p.size*=0.985;
-if(p.life<=0||p.size<0.3)particles.splice(i,1);
-}
-return;
-}
+  if(gameState==='gameover'){
+    bird.vel+=GRAVITY*dt;
+    if(bird.vel>MAX_FALL)bird.vel=MAX_FALL;
+    bird.y+=bird.vel;
+    if(bird.vel>2)bird.targetRot=Math.min(MAX_ANGLE,bird.vel*6);
+    bird.rot+=(bird.targetRot-bird.rot)*0.12;
+    groundOffset=(groundOffset+GROUND_SPEED*0.6*dt)%24;
+    groundOffset2=(groundOffset2+GROUND_SPEED*0.3*dt)%48;
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i];
+      p.x+=p.vx;p.y+=p.vy;
+      p.vy+=0.05;p.life-=p.decay;
+      p.size*=0.985;
+      if(p.life<=0||p.size<0.3)particles.splice(i,1);
+    }
+    return;
+  }
 
-if(gameState==='playing'){
-bird.vel+=GRAVITY;
-if(bird.vel>MAX_FALL)bird.vel=MAX_FALL;
-bird.y+=bird.vel;
+  if(gameState==='playing'){
+    bird.vel+=GRAVITY*dt;
+    if(bird.vel>MAX_FALL)bird.vel=MAX_FALL;
+    bird.y+=bird.vel;
 
-bird.targetRot=bird.vel*5;
-bird.targetRot=Math.max(MIN_ANGLE,Math.min(MAX_ANGLE,bird.targetRot));
-bird.rot+=(bird.targetRot-bird.rot)*0.15;
+    bird.targetRot=bird.vel*5;
+    bird.targetRot=Math.max(MIN_ANGLE,Math.min(MAX_ANGLE,bird.targetRot));
+    bird.rot+=(bird.targetRot-bird.rot)*0.15;
 
-wingPhase=bird.vel<0?wingPhase+0.25:wingPhase+0.07;
+    wingPhase=bird.vel<0?wingPhase+0.25:wingPhase+0.07;
 
-pipeTimer-=1;
-if(pipeTimer<=0){
-spawnPipe();
-pipeTimer=PIPE_SPACING/speedCurrent;
-}
+    pipeTimer-=dt;
+    if(pipeTimer<=0){
+      spawnPipe();
+      pipeTimer=PIPE_SPACING/speedCurrent;
+    }
 
-const groundTop=H-GROUND_H;
-for(let i=pipes.length-1;i>=0;i--){
-const p=pipes[i];
-p.x-=speedCurrent;
+    const groundTop=H-GROUND_H;
+    for(let i=pipes.length-1;i>=0;i--){
+      const p=pipes[i];
+      p.x-=speedCurrent*dt;
 
-if(p.x+PIPE_W+BIRD_HIT_PAD<0){
-pipes.splice(i,1);
-continue;
-}
+      if(p.x+PIPE_W+BIRD_HIT_PAD<0){
+        pipes.splice(i,1);
+        continue;
+      }
 
-const cx=bird.x+bird.w/2;
-if(!p.scored&&p.x+PIPE_W<cx){
-p.scored=true;
-score++;
-playSound('score');
-gapCurrent=Math.max(GAP_MIN,GAP_INIT-score*GAP_SHRINK);
-speedCurrent+=SPEED_INCR;
-}
+      const cx=bird.x+bird.w/2;
+      if(!p.scored&&p.x+PIPE_W<cx){
+        p.scored=true;
+        score++;
+        playSound('score');
+        gapCurrent=Math.max(GAP_MIN,GAP_INIT-score*GAP_SHRINK);
+        speedCurrent+=SPEED_INCR;
+      }
 
-const pad=BIRD_HIT_PAD;
-const bx=bird.x+pad,by=bird.y+pad;
-const bw=bird.w-pad*2,bh=bird.h-pad*2;
-const br=bx+bw,bb=by+bh;
-const pl=p.x,pr=p.x+PIPE_W;
+      const pad=BIRD_HIT_PAD;
+      const bx=bird.x+pad,by=bird.y+pad;
+      const bw=bird.w-pad*2,bh=bird.h-pad*2;
+      const br=bx+bw,bb=by+bh;
+      const pl=p.x,pr=p.x+PIPE_W;
 
-if((br>pl&&bx<pr&&by<p.gapY)||(br>pl&&bx<pr&&bb>p.gapY+p.gapH)){
-gameOver();return;
-}
-}
+      if((br>pl&&bx<pr&&by<p.gapY)||(br>pl&&bx<pr&&bb>p.gapY+p.gapH)){
+        gameOver();return;
+      }
+    }
 
-if(bird.y+bird.h>groundTop){
-bird.y=groundTop-bird.h;
-gameOver();return;
-}
-if(bird.y<-10){
-bird.y=-10;bird.vel=0;
-}
+    if(bird.y+bird.h>groundTop){
+      bird.y=groundTop-bird.h;
+      gameOver();return;
+    }
+    if(bird.y<-10){
+      bird.y=-10;bird.vel=0;
+    }
 
-groundOffset=(groundOffset+GROUND_SPEED)%24;
-groundOffset2=(groundOffset2+GROUND_SPEED*0.5)%48;
-}
+    groundOffset=(groundOffset+GROUND_SPEED*dt)%24;
+    groundOffset2=(groundOffset2+GROUND_SPEED*0.5*dt)%48;
+  }
 
-for(let i=particles.length-1;i>=0;i--){
-const p=particles[i];
-p.x+=p.vx;p.y+=p.vy;
-p.vy+=0.055;
-p.life-=p.decay;
-p.size*=0.985;
-if(p.life<=0||p.size<0.3)particles.splice(i,1);
-}
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;
+    p.vy+=0.055;
+    p.life-=p.decay;
+    p.size*=0.985;
+    if(p.life<=0||p.size<0.3)particles.splice(i,1);
+  }
 }
 
 function drawBackground(){
@@ -928,7 +934,7 @@ ctx.fillText('TAP or SPACE to restart',W/2,py+panelH-28);
 ctx.restore();
 }
 
-function draw(){
+function draw(dt){
 ctx.save();
 ctx.scale(scale,scale);
 
@@ -951,17 +957,17 @@ ctx.restore();
 
 let lastTime=0;
 function loop(time){
-const dt=Math.min((time-lastTime)/16.667,3);
-lastTime=time;
-update();
-draw();
+  const dt=Math.min((time-lastTime)/16.667,3);
+  lastTime=time;
+  update(dt);
+  draw(dt);
 requestAnimationFrame(loop);
 }
 
 let inputPointerId=null;
 canvas.addEventListener('pointerdown',(e)=>{
 e.preventDefault();
-if(e.pointerType!=='touch'&&e.pointerType!=='mouse')return;
+    if(e.pointerType!=='touch'&&e.pointerType!=='mouse'&&e.pointerType!=='pen')return;
 if(inputPointerId!==null)return;
 inputPointerId=e.pointerId;
 document.addEventListener('pointerup',function pu(ev){
@@ -974,10 +980,11 @@ flap();
 });
 
 document.addEventListener('keydown',(e)=>{
-if(e.code==='Space'||e.key===' '){
-e.preventDefault();
-flap();
-}
+  if(e.repeat) return;
+  if(e.code==='Space'||e.key===' '){
+    e.preventDefault();
+    flap();
+  }
 });
 
 requestAnimationFrame((time)=>{lastTime=time;loop(time);});

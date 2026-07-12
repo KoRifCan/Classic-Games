@@ -461,12 +461,12 @@ function showWinLine(line){
   const y1=(cellRects[0].top+cellRects[0].bottom)/2;
   const x2=(cellRects[2].left+cellRects[2].right)/2;
   const y2=(cellRects[2].top+cellRects[2].bottom)/2;
-  const pct=100/boardRect.width;
+  const pctX=100/boardRect.width,pctY=100/boardRect.height;
   const lineEl=document.createElementNS('http://www.w3.org/2000/svg','line');
-  lineEl.setAttribute('x1',((x1-boardRect.left)*pct)+'%');
-  lineEl.setAttribute('y1',((y1-boardRect.top)*pct)+'%');
-  lineEl.setAttribute('x2',((x2-boardRect.left)*pct)+'%');
-  lineEl.setAttribute('y2',((y2-boardRect.top)*pct)+'%');
+  lineEl.setAttribute('x1',((x1-boardRect.left)*pctX)+'%');
+  lineEl.setAttribute('y1',((y1-boardRect.top)*pctY)+'%');
+  lineEl.setAttribute('x2',((x2-boardRect.left)*pctX)+'%');
+  lineEl.setAttribute('y2',((y2-boardRect.top)*pctY)+'%');
   svg.appendChild(lineEl);
   boardEl.appendChild(svg);
 }
@@ -630,7 +630,7 @@ muteBtn.addEventListener('click',function(e){
   saveMuted();
   updateMuteBtn();
   if(muted)bgMusic.stop();
-  else {startBG();bgMusic.start();}
+  else {startBG();}
 });
 
 window.addEventListener('resize',()=>{

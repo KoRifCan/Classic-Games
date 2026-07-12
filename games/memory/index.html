@@ -470,8 +470,8 @@ emojis.forEach((e,i)=>{deck.push({id:i,emoji:e});deck.push({id:i,emoji:e})});
 state.cards=shuffle(deck);
 render();
 updateStats();
-cancelParticles();
-bgMusic.start();
+  cancelParticles();
+  bgMusic.stop();bgMusic.id=0;bgMusic.start();
 }
 
 function render(){
@@ -544,7 +544,7 @@ function updateStats(){
 $('#moves').textContent=state.moves;
 $('#timer').textContent=fmt(state.timer);
 const pairsTotal=state.totalPairs;
-$('#pairs').textContent=(state.matched||'0')+'/'+pairsTotal;
+$('#pairs').textContent=(state.matched??0).toString()+'/'+pairsTotal;
 if(state.moves>0){
 $('#stars').innerHTML=starsHTML(getStars(state.moves,state.gridSize));
 }else{$('#stars').innerHTML=''}
@@ -557,9 +557,10 @@ $('#best').innerHTML=b.moves+' '+starsHTML(s);
 }
 
 function win(){
-clearInterval(state.timerInterval);
-state.timerRunning=false;
-playSound('win');
+  clearInterval(state.timerInterval);
+  state.timerRunning=false;
+  bgMusic.stop();
+  playSound('win');
 const key=state.gridSize+'x'+state.gridSize;
 const cur={moves:state.moves,time:state.timer};
 const curStars=getStars(cur.moves,state.gridSize);
@@ -613,10 +614,13 @@ initGame();
 });
 
 $('#btnMute').addEventListener('click',function(){
-state.muted=!state.muted;
-this.classList.toggle('muted');
-this.textContent=state.muted?'🔇':'🔊';
-localStorage.setItem('memoryMuted',JSON.stringify(state.muted));
+  state.muted=!state.muted;
+  this.classList.toggle('muted');
+  this.textContent=state.muted?'🔇':'🔊';
+  localStorage.setItem('memoryMuted',JSON.stringify(state.muted));
+  if(audioCtx&&bgMusic.gain){
+    bgMusic.gain.gain.linearRampToValueAtTime(state.muted?0.001:0.20,audioCtx.currentTime+0.05);
+  }
 });
 
 addEventListener('resize',()=>{

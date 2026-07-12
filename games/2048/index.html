@@ -419,7 +419,10 @@ function handleMove(dir){
         if(checkGameOver(grid)){
           overlayBtn.onclick=()=>{
             keepPlaying=true;
-            showGameOver();playGameOverSound();
+            overlay.classList.remove('active');
+            if(!canMove(grid)){
+              showGameOver();playGameOverSound();
+            }
           };
         }
         return;
@@ -446,7 +449,8 @@ function showGameOver(){
   overlayMsg.textContent='No more moves available.';
   overlayBtn.textContent='Try Again';
   overlay.className='game-overlay active state-lose';
-  overlayBtn.onclick=()=>{init();};
+  overlayBtn.onclick=()=>{init();bgMusic.start();};
+  bgMusic.stop();
 }
 
 let animFrameId=null;
@@ -545,6 +549,7 @@ document.addEventListener('touchend',e=>{
 },{passive:true});
 
 document.addEventListener('keydown',e=>{
+  if(e.repeat) return;
   let dir=-1;
   const map={ArrowUp:0,ArrowRight:1,ArrowDown:2,ArrowLeft:3};
   dir=map[e.key]!==undefined?map[e.key]:-1;
@@ -701,6 +706,14 @@ let resizeTimer;
 window.addEventListener('resize',()=>{
   clearTimeout(resizeTimer);
   resizeTimer=setTimeout(()=>{renderTiles();},100);
+});
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    bgMusic.stop();
+  } else if(!over&&!won){
+    bgMusic.start();
+  }
 });
 })();
 </script>

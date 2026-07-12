@@ -339,7 +339,7 @@ let currentCharIdx = 0;
 let correctKeys = 0;
 let incorrectKeys = 0;
 let totalKeys = 0;
-let wpmValues = [];
+// let wpmValues = [];
 let timerInterval = null;
 let topWpm = 0;
 
@@ -373,7 +373,7 @@ currentCharIdx = 0;
 correctKeys = 0;
 incorrectKeys = 0;
 totalKeys = 0;
-wpmValues = [];
+// wpmValues = [];
 words = pickWords(50);
 wordInput.value = '';
 wordInput.disabled = false;
@@ -405,7 +405,7 @@ startBtn.className = 'start-btn finished';
 playSfxComplete();
 const wpm = calculateWpm();
 const acc = totalKeys>0 ? Math.round((correctKeys/totalKeys)*100) : 100;
-const elapsed = timeLimit;
+const elapsed = timeLimit - timeRemaining;
 topWpm = Math.max(topWpm,wpm);
 showResult(wpm,acc);
 saveScore(wpm,acc);
@@ -413,9 +413,9 @@ updateHighScores();
 }
 
 function calculateWpm(){
-const elapsed = timeLimit;
+const elapsed = timeLimit - timeRemaining;
+if(elapsed<=0) return 0;
 const minutes = elapsed/60;
-if(minutes<=0) return 0;
 // WPM = (correct chars / 5) / minutes
 const wpm = Math.round((correctKeys/5)/minutes);
 return Math.max(0,wpm);
@@ -452,7 +452,7 @@ currentEl.scrollIntoView({block:'nearest',behavior:'smooth'});
 
 function updateStats(){
 const wpm = calculateWpm();
-if(isRunning&&wpm>0) wpmValues.push(wpm);
+// if(isRunning&&wpm>0) wpmValues.push(wpm);
 const acc = totalKeys>0 ? Math.round((correctKeys/totalKeys)*100) : 100;
 wpmDisplay.textContent = wpm;
 accDisplay.textContent = acc+'%';
@@ -551,6 +551,8 @@ const charIdx = val.length-1;
 currentCharIdx = val.length;
 const expectedChar = word[charIdx];
 if(!expectedChar){
+totalKeys++;
+incorrectKeys++;
 playSfxIncorrect();
 return;
 }
@@ -569,8 +571,9 @@ updateStats();
 renderWords();
 });
 
-wordInput.addEventListener('keydown',function(e){
-if(e.key==='Backspace'){
+  wordInput.addEventListener('keydown',function(e){
+    if(e.repeat) return;
+    if(e.key==='Backspace'){
 // Allow backspace but track it
 }
 if(!isRunning&&e.key==='Enter'){

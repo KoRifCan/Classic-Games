@@ -212,7 +212,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   function sfxPaddle(){playSFX(440,0.08,'square',0.07)}
   function sfxWall(){playSFX(300,0.06,'sine',0.05)}
   function sfxScore(){playSFX(523,0.1,'square',0.08);setTimeout(()=>playSFX(659,0.1,'square',0.07),80)}
-  function sfxWin(){playSFX(523,0.1,'square',0.08,0);setTimeout(()=>playSFX(659,0.1,'square',0.07,0),80);setTimeout(()=>playSFX(784,0.15,'square',0.07,0),160)}
+  function sfxWin(){playSFX(523,0.1,'square',0.08);setTimeout(()=>playSFX(659,0.1,'square',0.07),80);setTimeout(()=>playSFX(784,0.15,'square',0.07),160)}
   function sfxLose(){playSFX(400,0.15,'sawtooth',0.06);setTimeout(()=>playSFX(250,0.2,'sawtooth',0.05),150)}
 
   function toggleSound(){
@@ -336,7 +336,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     ballY+=ballVY;
 
     // Wall bounce
-    if(ballY<=0){ballY=0;ballVY=-ballVY;sfxWall();emitParticles(ballX,0,5,'rgba(0,255,247,0.5)')}
+    if(ballY<=0){ballY=BALL_SIZE;ballVY=-ballVY;sfxWall();emitParticles(ballX,0,5,'rgba(0,255,247,0.5)')}
     if(ballY>=H-BALL_SIZE){ballY=H-BALL_SIZE;ballVY=-ballVY;sfxWall();emitParticles(ballX,H,5,'rgba(0,255,247,0.5)')}
 
     // AI paddle (left)
@@ -489,6 +489,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
 
   // ---- INPUT ----
   document.addEventListener('keydown',e=>{
+    if(e.repeat) return;
     if(e.key==='m'||e.key==='M'){e.preventDefault();toggleSound();return}
     if(e.key==='Enter'||e.key===' '){
       if(state==='menu'||state==='dead'){e.preventDefault();startGame();return}
@@ -577,7 +578,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     update();
     updateParticles();
     draw();
-    animId=requestAnimationFrame(loop);
+    if(state!=='dead') animId=requestAnimationFrame(loop);
   }
 
   init();

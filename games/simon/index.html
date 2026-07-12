@@ -326,9 +326,9 @@ h1{
   function handleInput(idx){
     initAudio();
     if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+    if(isShowing||!isPlayerTurn||!isPlaying)return;
     lightUp(idx);playTone(COLORS[idx].freq,0.2,0.25);
     setTimeout(()=>lightDown(idx),200);
-    if(isShowing||!isPlayerTurn||!isPlaying)return;
     if(idx!==sequence[playerIdx]){
       isPlayerTurn=false;playError();
       if(strictMode)setTimeout(gameOver,400);
@@ -366,6 +366,7 @@ h1{
   strictToggle.addEventListener('change',()=>{strictMode=strictToggle.checked});
 
   document.addEventListener('keydown',e=>{
+    if(e.repeat)return;
     const k=e.key.toLowerCase();
     if(k in IDX_KEY){e.preventDefault();handleInput(IDX_KEY[k]);}
     if((k==='enter'||k===' ')&&!isPlaying&&!modal.classList.contains('open')){e.preventDefault();startGame();}
@@ -374,6 +375,7 @@ h1{
   muteBtn.addEventListener('click',()=>{
     muted=!muted;
     muteBtn.textContent=muted?'🔇':'🔊';
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
     if(masterGain)masterGain.gain.value=muted?0:0.2;
   });
 

@@ -94,7 +94,7 @@ const audio=new AudioManager();
 class BGMusic{
   constructor(){
     this.ctx=null;this.master=null;this.nodes=[];
-    this.playing=false;this.muted=false;this.bossActive=false;
+    this.playing=false;this.bossActive=false;
     this.timer=0;this.bpm=130;this.bossBpm=162;this.step=0;
     this.nextTime=0;this.schedTimer=null;
     this.bassNotes=[82.41,110,73.42,98]; // E2,A2,D2,G2
@@ -162,6 +162,7 @@ class BGMusic{
     o.start(time);o.stop(time+dur);
   }
   start(){
+    this.bossActive=false;
     if(!this.ctx||this.playing)return;
     this.playing=true;this.step=0;
     this.nextTime=this.ctx.currentTime+0.05;
@@ -213,6 +214,7 @@ const bgMusic=new BGMusic();
 
 // ---- Keyboard ----
 document.addEventListener('keydown',e=>{
+  if(e.repeat)return;
   KEYS[e.key]=true;
   if(e.key===' '||e.key==='ArrowUp'||e.key==='ArrowDown')e.preventDefault();
   if((e.key==='p'||e.key==='P')&&game){paused=!paused;return}
@@ -494,7 +496,7 @@ class Player{
     this.x=W/2;this.y=H-60;this.w=40;this.h=48;
     this.speed=5;this.shootDelay=10;this.shootTimer=0;
     this.spread=false;this.shield=false;this.speedBoost=false;
-    this.powerTimer=0;this.powerTypes=[];
+    this.powerTimers={S:0,P:0,B:0};this.powerTypes=[];
     this.lives=3;this.invincible=0;this.alive=true;
     this.exhaust=[];this.autoFire=false;this.touchDx=0;this.touchTarget=null;
     this.engineGlow=0;this.thrustPhase=0;
@@ -515,10 +517,15 @@ class Player{
     if(KEYS[' ']||this.autoFire){
       if(this.shootTimer===0){this.shoot();this.shootTimer=this.shootDelay}
     }
-    if(this.powerTimer>0){
-      this.powerTimer--;
-      if(this.powerTimer===0){
-        this.spread=false;this.shield=false;this.speedBoost=false;this.powerTypes=[];
+    for(const t of ['S','P','B']){
+      if(this.powerTimers[t]>0){
+        this.powerTimers[t]--;
+        if(this.powerTimers[t]===0){
+          if(t==='S')this.spread=false;
+          else if(t==='P')this.shield=false;
+          else if(t==='B')this.speedBoost=false;
+          this.powerTypes=this.powerTypes.filter(pt=>pt!==t);
+        }
       }
     }
     if(this.alive&&Math.random()<0.7){
@@ -726,7 +733,7 @@ function update(){
     if(!b.alive){game.enemyBullets.splice(i,1);continue}
     if(p.alive&&p.invincible===0&&circHit(b,p,5,16)){
       b.alive=false;game.enemyBullets.splice(i,1);
-      if(p.shield){p.shield=false;p.powerTimer=0;p.powerTypes=[];explode(b.x,b.y,'#00ccff',12,3);audio.play('hit');continue}
+      if(p.shield){p.shield=false;p.powerTimers['P']=0;p.powerTypes=p.powerTypes.filter(t=>t!=='P');explode(b.x,b.y,'#00ccff',12,3);audio.play('hit');continue}
       hitPlayer();
     }
   }
@@ -734,7 +741,7 @@ function update(){
     for(let i=game.enemies.length-1;i>=0;i--){
       const e=game.enemies[i],eRad=e.type==='boss'?38:15;
       if(circHit(p,e,16,eRad)){
-        if(p.shield){p.shield=false;p.powerTimer=0;p.powerTypes=[];explode(e.x,e.y,'#00ccff',15,4);game.enemies.splice(i,1);game.score+=5;continue}
+        if(p.shield){p.shield=false;p.powerTimers['P']=0;p.powerTypes=p.powerTypes.filter(t=>t!=='P');explode(e.x,e.y,'#00ccff',15,4);game.enemies.splice(i,1);game.score+=5;continue}
         hitPlayer();break;
       }
     }
@@ -748,8 +755,8 @@ function update(){
       const key=km[u.type];
       if(key==='spread')p.spread=true;else if(key==='shield')p.shield=true;else if(key==='speed')p.speedBoost=true;
       // Reset timer and track active types for display
-      p.powerTimer=600;
       if(!p.powerTypes.includes(u.type))p.powerTypes.push(u.type);
+      p.powerTimers[u.type]=600;
       flashText(tm[u.type]+'!','#ffcc00');explode(u.x,u.y,'#ffcc00',18,3);
       game.powerups.splice(i,1);
     }
@@ -882,8 +889,9 @@ function draw(){
   }
 
   // Power bar
-  if(game.player.powerTimer>0&&game.player.powerTypes.length>0){
-    const pct=game.player.powerTimer/600;
+  if(game.player.powerTypes.length>0){
+    const mt=Math.max(...Object.values(game.player.powerTimers));
+    const pct=mt/600;
     const bc={'S':'#ffcc00','P':'#00ff88','B':'#ff8800'};
     const activeColors=game.player.powerTypes.map(t=>bc[t]||'#ffcc00');
     ctx.save();

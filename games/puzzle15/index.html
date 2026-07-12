@@ -150,7 +150,7 @@ h1{
   const GAP=4;
   let gridSize=4,grid=[],emptyRow=0,emptyCol=0;
   let moves=0,seconds=0,timer=null,timerStarted=false;
-  let isSolved=false,isShuffling=false;
+  let isSolved=false,isShuffling=false,needsRender=false;
   let audioCtx=null,masterGain=null,bgNodes=[],melodyTimer=null,muted=false;
   let firstTap=true;
 
@@ -198,6 +198,7 @@ h1{
   }
 
   function render(){
+    if(!puzzleGrid.offsetWidth)return;
     puzzleGrid.innerHTML='';
     const n=gridSize,cs=getCellSize(),ts=cs-GAP;
     for(let r=0;r<n;r++){
@@ -212,6 +213,7 @@ h1{
         tile.style.height=ts+'px';
         tile.style.transform=`translate(${c*cs+GAP/2}px,${r*cs+GAP/2}px)`;
         tile.style.background=getTileColor(val);
+        if(val===r*gridSize+c+1)tile.classList.add('correct');
         tile.addEventListener('click',()=>moveTile(val));
         tile.addEventListener('pointerdown',e=>e.preventDefault());
         puzzleGrid.appendChild(tile);
@@ -391,6 +393,7 @@ h1{
       if(count>=total){
         isShuffling=false;shuffleBtn.disabled=false;
         moves=0;seconds=0;updateStats();
+        if(needsRender){needsRender=false;render();}
         return;
       }
       count++;
@@ -437,6 +440,7 @@ h1{
   playAgainBtn.addEventListener('click',resetAndShuffle);
 
   document.addEventListener('keydown',e=>{
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
     if(isShuffling||isSolved)return;
     const k=e.key;
     let val=null;
@@ -463,7 +467,10 @@ h1{
   let resizeTimer;
   window.addEventListener('resize',()=>{
     clearTimeout(resizeTimer);
-    resizeTimer=setTimeout(()=>{if(!isShuffling)render()},200);
+    resizeTimer=setTimeout(()=>{
+      if(!isShuffling)render();
+      else needsRender=true;
+    },200);
   });
 
   initBoard();render();updateStats();loadBest();

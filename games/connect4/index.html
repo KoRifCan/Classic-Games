@@ -29,6 +29,7 @@ h1{font-size:28px;font-weight:700;background:linear-gradient(90deg,#ff6b6b,#ffd9
 .board{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;position:relative}
 .col{display:flex;flex-direction:column-reverse;gap:6px;cursor:pointer;padding:4px;border-radius:10px;transition:all .2s;position:relative}
 .col:hover{background:rgba(255,255,255,0.06)}
+.col{touch-action:manipulation}
 .col.dim{opacity:0.4}
 .cell{width:clamp(36px,9vw,62px);height:clamp(36px,9vw,62px);border-radius:50%;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.08);transition:all .3s ease;position:relative}
 .cell.red{background:radial-gradient(circle at 35% 35%,#ff8888,#cc2222);border-color:#ff4444;box-shadow:0 0 12px rgba(255,50,50,0.3)}
@@ -240,6 +241,7 @@ function toggleMute(){
 isMuted = !isMuted;
 document.getElementById('muteBtn').textContent = isMuted?'🔇':'🔊';
 if(audioCtx){
+if(audioCtx.state==='suspended')audioCtx.resume();
 masterGain.gain.value = isMuted?0:0.2;
 }
 if(!isMuted&&!isMusicPlaying&&audioCtx) startMusic();
@@ -318,7 +320,6 @@ cell.classList.add('win');
 colEl.appendChild(cell);
 }
 colEl.addEventListener('click',()=>handleColumnClick(c));
-colEl.addEventListener('touchend',(e)=>{e.preventDefault();handleColumnClick(c);});
 boardEl.appendChild(colEl);
 }
 updateTurnIndicator();
@@ -354,6 +355,8 @@ document.getElementById('gameOverOverlay').classList.remove('show');
 
 // ===== Game Logic =====
 function handleColumnClick(col){
+initAudio();
+if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
 if(!gameActive||isAnimating) return;
 if(isAiMode&&currentPlayer===2) return;
 dropPiece(col);
@@ -452,6 +455,7 @@ board[c][r] = aiPlayer;
 for(let dc=-1;dc<=1;dc++){
 for(let dr=-1;dr<=1;dr++){
 if(dc===0&&dr===0) continue;
+if(dc<0||(dc===0&&dr<0)) continue;
 let count=1;
 for(let d=1;d<4;d++){
 let nc=c+dc*d, nr=r+dr*d;

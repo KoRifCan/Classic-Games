@@ -595,7 +595,6 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
   function drawBonus(){
     const b=bonus;
     const elapsed=Date.now()-b.time;
-    if(elapsed>5000){bonus=null;return;}
     const flash=Math.sin(elapsed/100)>0;
     const pulse=0.9+0.1*Math.sin(elapsed/180);
     const cx=b.x*GRID+GRID/2,cy=b.y*GRID+GRID/2;
@@ -641,8 +640,8 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
       }else if(i===len-1&&len>1){
         const prev=snake[len-2];
         if(state==='playing'){
-          x=lerp(seg.x*GRID+GRID/2,prev.x*GRID+GRID/2,1-t);
-          y=lerp(seg.y*GRID+GRID/2,prev.y*GRID+GRID/2,1-t);
+          x=lerp(seg.x*GRID+GRID/2,prev.x*GRID+GRID/2,t);
+          y=lerp(seg.y*GRID+GRID/2,prev.y*GRID+GRID/2,t);
         }
       }
 
@@ -700,6 +699,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
   }
 
   document.addEventListener('keydown',e=>{
+    if(e.repeat) return;
     if(e.key==='m'||e.key==='M'){
       toggleSound();e.preventDefault();return;
     }
@@ -717,10 +717,10 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
       case 'ArrowDown':e.preventDefault();setDirection(DOWN);break;
       case 'ArrowLeft':e.preventDefault();setDirection(LEFT);break;
       case 'ArrowRight':e.preventDefault();setDirection(RIGHT);break;
-      case 'w':case 'W':setDirection(UP);break;
-      case 's':case 'S':setDirection(DOWN);break;
-      case 'a':case 'A':setDirection(LEFT);break;
-      case 'd':case 'D':setDirection(RIGHT);break;
+      case 'w':case 'W':e.preventDefault();setDirection(UP);break;
+      case 's':case 'S':e.preventDefault();setDirection(DOWN);break;
+      case 'a':case 'A':e.preventDefault();setDirection(LEFT);break;
+      case 'd':case 'D':e.preventDefault();setDirection(RIGHT);break;
     }
   });
 
