@@ -24,7 +24,7 @@ h1{font-size:clamp(1rem,4vw,1.6rem);font-weight:800;letter-spacing:4px;text-tran
 .face{font-size:clamp(1.2rem,4.5vw,1.6rem);cursor:pointer;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:2px 12px;border-radius:8px;transition:all .2s;line-height:1.3;backdrop-filter:blur(4px)}
 .face:hover{background:rgba(255,255,255,.12);transform:scale(1.05)}
 .face:active{transform:scale(.92)}
-.bw{background:rgba(255,255,255,.04);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:var(--gap);box-shadow:0 4px 24px rgba(0,0,0,.3)}
+.bw{background:rgba(255,255,255,.04);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:var(--gap);box-shadow:0 4px 24px rgba(0,0,0,.3);overflow-x:auto;-webkit-overflow-scrolling:touch}
 .board{display:grid;gap:var(--gap);touch-action:none}
 .cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cell-size)*.52);font-weight:800;cursor:pointer;border-radius:3px;background:linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.1);transition:background .12s,transform .1s,box-shadow .15s;position:relative;will-change:transform;color:#ddd;text-shadow:none}
 .cell:active:not(.rv):not(.flag):not(.mine-show):not(.mine-hit){transform:scale(.88)}
@@ -82,18 +82,26 @@ h1{font-size:clamp(1rem,4vw,1.6rem);font-weight:800;letter-spacing:4px;text-tran
 <div class="best" id="best"></div>
 </div>
 <button class="mute" id="muteBtn" title="Toggle sound">🔊</button>
+<a href="../../index.html" style="position:fixed;top:12px;left:12px;color:#8888cc;text-decoration:none;font-size:12px;padding:4px 10px;border-radius:6px;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08);z-index:10;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;transition:all .2s" onmouseover="this.style.color='#aaaaff'" onmouseout="this.style.color='#8888cc'">&larr; Hub</a>
+<div id="pauseOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:99;opacity:0;pointer-events:none;transition:opacity .4s">
+<div style="background:rgba(14,14,38,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:36px 28px;text-align:center;max-width:280px;width:90%">
+<div style="font-size:48px;margin-bottom:8px">⏸️</div>
+<h2 style="font-size:24px;margin-bottom:8px;color:#00d4ff;text-shadow:0 0 20px rgba(0,212,255,.3)">Paused</h2>
+<p style="color:#888;font-size:14px">Press <span style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:4px;font-family:inherit">P</span> or <span style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:4px;font-family:inherit">Esc</span> to resume</p>
+</div>
+</div>
 <script>
 const $=(s,o=document)=>o.querySelector(s),$$=(s,o=document)=>[...o.querySelectorAll(s)];
 const MODES={easy:{r:9,c:9,m:10},medium:{r:16,c:16,m:40},hard:{r:16,c:30,m:99}};
 const NCOL=['','n1','n2','n3','n4','n5','n6','n7','n8'];
 
-let mode='easy',R=9,C=9,M=10,brd=[],el=[],flags=0,timer=0,ti=null,fc=true,over=false,won=false,rev=0,tch=null,th=false,lt=null,ts=null,muted=false;
+let mode='easy',R=9,C=9,M=10,brd=[],el=[],flags=0,timer=0,ti=null,fc=true,over=false,won=false,rev=0,tch=null,th=false,lt=null,ts=null,muted=false,paused=false;
 
 const face=$('#face'),flagC=$('#flagC'),timerEl=$('#timer'),board=$('#board'),bestEl=$('#best'),muteBtn=$('#muteBtn');
 
 const AudioCtx=window.AudioContext||window.webkitAudioContext;
 let actx=null;
-function getCtx(){if(!actx)actx=new AudioCtx();return actx}
+function getCtx(){if(!actx)actx=new AudioCtx();if(actx.state==='suspended')actx.resume();return actx}
 function playTone(freq,dur,type='sine',vol=.12){
   if(muted)return;
   try{
@@ -173,7 +181,7 @@ const bgMusic = {
 
 function init(m){
   mode=m;const cfg=MODES[m];R=cfg.r;C=cfg.c;M=cfg.m;
-  over=false;won=false;fc=true;rev=0;flags=0;timer=0;th=false;
+  over=false;won=false;fc=true;rev=0;flags=0;timer=0;th=false;paused=false;
   document.querySelectorAll('.confetti').forEach(el=>el.remove());
   if(ti){clearInterval(ti);ti=null}
   brd=[];el=[];
@@ -184,13 +192,15 @@ function init(m){
   updateUI();
   loadBest();
   face.textContent='🙂';
+  document.getElementById('pauseOverlay').style.opacity='0';
+  document.getElementById('pauseOverlay').style.pointerEvents='none';
   document.getElementById('app').classList.remove('shake');
 }
 
 function resize(){
   const vw=window.innerWidth-20,gap=2,mg=Math.min(vw,680);
   const raw=(mg-(C-1)*gap)/C;
-  const sz=Math.min(Math.floor(raw),48);
+  const sz=Math.max(Math.min(Math.floor(raw),48),32);
   const pw=sz*C+(C-1)*gap;
   const actualPw=Math.min(pw,mg);
   const cellSz=Math.floor((actualPw-(C-1)*gap)/C);
@@ -310,13 +320,16 @@ function updateUI(){
   timerEl.textContent=String(timer).padStart(3,'0');
 }
 
+function lsGet(k,def){try{const v=localStorage.getItem(k);return v!==null?v:def}catch(e){return def}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
 function loadBest(){
   const diffs=['easy','medium','hard'];
   const medals=['🥇','🥈','🥉'];
   const cls=['gold','silver','bronze'];
   let html='';
   diffs.forEach((d,i)=>{
-    const saved=localStorage.getItem('ms_best_'+d);
+    const saved=lsGet('ms_best_'+d);
     if(saved)html+=`<span class="${cls[i]}">${medals[i]} ${d}: ${saved}s</span>`;
     else html+=`<span class="${cls[i]}">${medals[i]} ${d}: --</span>`;
   });
@@ -326,8 +339,8 @@ function loadBest(){
 function saveBest(){
   if(won){
     const key='ms_best_'+mode;
-    const saved=localStorage.getItem(key);
-    if(!saved||timer<parseInt(saved)){localStorage.setItem(key,timer);loadBest()}
+    const saved=lsGet(key);
+    if(!saved||timer<parseInt(saved)){lsSet(key,timer);loadBest()}
   }
 }
 
@@ -374,8 +387,26 @@ function spawnExplosionParticles(r,c){
   }
 }
 
+// Pause / Resume
+function pauseGame(){
+if(paused||over)return;
+paused=true;
+if(ti){clearInterval(ti);ti=null}
+document.getElementById('pauseOverlay').style.opacity='1';
+document.getElementById('pauseOverlay').style.pointerEvents='auto';
+}
+function resumeGame(){
+if(!paused)return;
+paused=false;
+document.getElementById('pauseOverlay').style.opacity='0';
+document.getElementById('pauseOverlay').style.pointerEvents='none';
+if((!over&&!won)&&timer>0){ti=setInterval(()=>{timer++;timerEl.textContent=String(timer).padStart(3,'0')},1000)}
+}
+document.getElementById('pauseOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)resumeGame()});
+
 // Mouse events
 board.addEventListener('click',e=>{
+  if(paused||over||won)return;
   if(th){th=false;return}
   const g=getCell(e);if(!g)return;
   if(e.ctrlKey||e.metaKey){toggleFlag(g.row,g.col);return}
@@ -402,6 +433,7 @@ board.addEventListener('mouseleave',()=>{
 
 // Touch events
 board.addEventListener('touchstart',e=>{
+  if(paused)return;
   th=false;
   const g=getCell(e);if(!g||brd[g.row][g.col].rv||over||won)return;
   ts={x:e.touches[0].clientX,y:e.touches[0].clientY};
@@ -423,7 +455,7 @@ board.addEventListener('touchmove',e=>{
 
 board.addEventListener('touchend',e=>{
   if(lt){clearTimeout(lt);lt=null}
-  if(!th&&tch){reveal(tch.row,tch.col);th=true}
+  if(!th&&tch&&!paused){reveal(tch.row,tch.col);th=true}
   tch=null;ts=null;
   if(over)face.textContent=won?'😎':'💀';
   else face.textContent='🙂';
@@ -457,12 +489,18 @@ muteBtn.addEventListener('click',()=>{
 let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(resize,150)});
 
 // Keyboard shortcuts
-document.addEventListener('keydown',e=>{if(e.repeat)return;
-  if(e.key==='r'||e.key==='R')resetGame();
-  if(e.key==='1')init('easy');
-  if(e.key==='2')init('medium');
-  if(e.key==='3')init('hard');
-  if(e.key==='m'||e.key==='M'){muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';if(bgMusic.master)bgMusic.master.gain.value=muted?0:(bgMusic.playing?0.20:0)}
+document.addEventListener('keydown',e=>{if(e.repeat)return;const k=e.key;
+  if(k==='p'||k==='P'||k==='Escape'){e.preventDefault();if(paused)resumeGame();else pauseGame();return}
+  if(k===' '||k==='Enter'){e.preventDefault();if(over||won){resetGame();return}if(paused){resumeGame();return}}
+  if(k==='r'||k==='R'){e.preventDefault();resetGame()}
+  if(k==='1'){e.preventDefault();init('easy')}
+  if(k==='2'){e.preventDefault();init('medium')}
+  if(k==='3'){e.preventDefault();init('hard')}
+  if(k==='m'||k==='M'){e.preventDefault();muted=!muted;muteBtn.textContent=muted?'🔇':'🔊';if(bgMusic.master)bgMusic.master.gain.value=muted?0:(bgMusic.playing?0.20:0)}
+});
+
+document.addEventListener('visibilitychange',()=>{
+if(document.hidden&&!over&&!won&&!paused&&timer>0)pauseGame();
 });
 
 init('easy');

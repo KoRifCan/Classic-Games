@@ -10,7 +10,7 @@
 body{
   color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none
+  overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent
 }
 body::before{
   content:'';position:fixed;inset:0;z-index:-1;
@@ -79,7 +79,7 @@ canvas#board{
   display:flex;gap:5px;width:100%;justify-content:center;flex-wrap:wrap
 }
 .numpad-btn{
-  width:38px;height:38px;border-radius:8px;border:1px solid rgba(255,255,255,.1);
+  width:44px;height:44px;border-radius:8px;border:1px solid rgba(255,255,255,.1);
   background:rgba(255,255,255,.05);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
   color:rgba(255,255,255,.6);font-size:16px;font-weight:600;cursor:pointer;
   transition:all .1s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
@@ -105,7 +105,7 @@ canvas#board{
   .header{font-size:11px;padding:7px 10px}
   .overlay h2{font-size:20px}
   .btn{padding:6px 12px;font-size:11px}
-  .numpad-btn{width:32px;height:32px;font-size:14px}
+  .numpad-btn{width:38px;height:38px;font-size:14px}
 }
 </style>
 </head>
@@ -731,12 +731,31 @@ canvas#board{
     if(state!=='playing')return;
     if(e.key>='1'&&e.key<='9'){placeNumber(parseInt(e.key));}
     else if(e.key==='Backspace'||e.key==='Delete'||e.key==='0'){eraseCell();}
-    else if(e.key==='ArrowUp'&&selected){selected.r=Math.max(0,selected.r-1);drawBoard();}
-    else if(e.key==='ArrowDown'&&selected){selected.r=Math.min(8,selected.r+1);drawBoard();}
-    else if(e.key==='ArrowLeft'&&selected){selected.c=Math.max(0,selected.c-1);drawBoard();}
-    else if(e.key==='ArrowRight'&&selected){selected.c=Math.min(8,selected.c+1);drawBoard();}
+    else if(e.key==='ArrowUp'&&selected){e.preventDefault();selected.r=Math.max(0,selected.r-1);drawBoard();}
+    else if(e.key==='ArrowDown'&&selected){e.preventDefault();selected.r=Math.min(8,selected.r+1);drawBoard();}
+    else if(e.key==='ArrowLeft'&&selected){e.preventDefault();selected.c=Math.max(0,selected.c-1);drawBoard();}
+    else if(e.key==='ArrowRight'&&selected){e.preventDefault();selected.c=Math.min(8,selected.c+1);drawBoard();}
     else if(e.key==='n'||e.key==='N'){toggleNotes();}
     else if(e.key==='m'||e.key==='M')toggleSound();
+    else if(e.key===' '||e.key==='Enter'){
+      e.preventDefault();
+      if(state==='menu'||state==='complete')playBtn.click();
+    }
+    else if(e.key==='Escape'||e.key==='p'||e.key==='P'){
+      if(state==='playing'){
+        state='paused';
+        if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+        drawPause();
+      }else if(state==='paused'){
+        state='playing';
+        timerInterval=setInterval(()=>{
+          timer++;
+          const m=Math.floor(timer/60),s=timer%60;
+          timerEl.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+        },1000);
+        drawBoard();
+      }
+    }
   });
 
   function toggleNotes(){
@@ -814,6 +833,27 @@ canvas#board{
 
   soundBtn.textContent=soundEnabled?'🔊':'🔇';
   setDifficulty(0);
+
+  function drawPause(){
+    drawBoard();
+    ctx.fillStyle='rgba(0,0,0,0.6)';
+    ctx.fillRect(0,0,S,S);
+    ctx.fillStyle='#fff';
+    ctx.font='bold 32px sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('PAUSED',S/2,S/2-20);
+    ctx.font='14px sans-serif';
+    ctx.fillStyle='#aaa';
+    ctx.fillText('Press P or Escape to resume',S/2,S/2+20);
+  }
+
+  document.addEventListener('contextmenu',function(e){e.preventDefault()});
+  document.addEventListener('touchcancel',function(){});
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){bgMusic.stop();if(state==='playing'&&timerInterval){clearInterval(timerInterval);timerInterval=null;}}
+    else if(state==='playing'&&soundEnabled){bgMusic.start();timerInterval=setInterval(()=>{timer++;const m=Math.floor(timer/60),s=timer%60;timerEl.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');},1000);}
+  });
+  window.addEventListener('resize',function(){});
 })();
 </script>
 </body>

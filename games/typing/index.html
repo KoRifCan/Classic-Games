@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⌨️</text></svg>">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{min-height:100vh;background:linear-gradient(135deg,#080012,#0a0a24,#0d0d30);color:#e0e0e0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;display:flex;justify-content:center;align-items:center;overflow-x:hidden}
+body{min-height:100vh;background:linear-gradient(135deg,#080012,#0a0a24,#0d0d30);color:#e0e0e0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;display:flex;justify-content:center;align-items:center;overflow:hidden;touch-action:manipulation}
 #app{width:100%;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:12px;position:relative}
 .top-bar{width:100%;max-width:700px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .back-link{color:#8888cc;text-decoration:none;font-size:14px;padding:6px 14px;border-radius:8px;background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);transition:all .2s}
@@ -116,6 +116,13 @@ h1{font-size:28px;font-weight:700;background:linear-gradient(90deg,#43e97b,#38f9
 </div>
 </div>
 </div>
+<div id="pauseOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:99;opacity:0;pointer-events:none;transition:opacity .4s">
+<div style="background:rgba(14,14,38,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:36px 28px;text-align:center;max-width:280px;width:90%">
+<div style="font-size:48px;margin-bottom:8px">⏸️</div>
+<h2 style="font-size:24px;margin-bottom:8px;background:linear-gradient(90deg,#43e97b,#38f9d7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Paused</h2>
+<p style="color:#888;font-size:14px">Press <span style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:4px;font-family:inherit">P</span> or <span style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:4px;font-family:inherit">Esc</span> to resume</p>
+</div>
+</div>
 <script>
 // ===== Audio Engine =====
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -128,8 +135,12 @@ let isMuted = false;
 let isMusicPlaying = false;
 
 function initAudio(){
-if(audioCtx) return;
+if(audioCtx){
+if(audioCtx.state==='suspended')audioCtx.resume();
+return;
+}
 audioCtx = new AudioCtx();
+if(audioCtx.state==='suspended')audioCtx.resume();
 masterGain = audioCtx.createGain();
 masterGain.gain.value = 0.22;
 masterGain.connect(audioCtx.destination);
@@ -190,6 +201,7 @@ let bar = 0;
 
 function scheduleLoop(){
 if(!isMusicPlaying) return;
+try{
 const now = audioCtx.currentTime;
 const root = 220 + (bar%4)*11;
 
@@ -263,6 +275,7 @@ bar++;
 const next = now+beat*8;
 const delay = Math.max(0,next-audioCtx.currentTime)*1000;
 setTimeout(scheduleLoop,delay);
+}catch(e){isMusicPlaying=false}
 }
 scheduleLoop();
 }
@@ -334,6 +347,7 @@ const WORD_LIST = [
 let timeLimit = 60;
 let timeRemaining = 60;
 let isRunning = false;
+let isPaused = false;
 let words = [];
 let currentWordIdx = 0;
 let currentCharIdx = 0;
@@ -367,6 +381,7 @@ function startGame(){
 initAudio();
 if(!isMusicPlaying) startMusic();
 hideResult();
+if(isPaused){isPaused=false;document.getElementById('pauseOverlay').style.opacity='0';document.getElementById('pauseOverlay').style.pointerEvents='none'}
 timeRemaining = timeLimit;
 isRunning = true;
 currentWordIdx = 0;
@@ -399,7 +414,10 @@ endGame();
 
 function endGame(){
 isRunning = false;
+isPaused = false;
 clearInterval(timerInterval);
+document.getElementById('pauseOverlay').style.opacity='0';
+document.getElementById('pauseOverlay').style.pointerEvents='none';
 wordInput.disabled = true;
 startBtn.textContent = 'Finished';
 startBtn.className = 'start-btn finished';
@@ -511,7 +529,7 @@ hsContent.innerHTML = html;
 
 // ===== Input Handling =====
 wordInput.addEventListener('input',function(e){
-  if(!isRunning) return;
+  if(!isRunning||isPaused) return;
   const val = this.value;
   if(val.length===0){
     currentCharIdx = 0;
@@ -585,8 +603,44 @@ renderWords();
 // Allow backspace but track it
 }
 if(!isRunning&&e.key==='Enter'){
-startGame();
+e.preventDefault();startGame();
 }
+});
+
+// ===== Pause =====
+function pauseGame(){
+if(!isRunning||isPaused)return;
+isPaused=true;
+clearInterval(timerInterval);
+document.getElementById('pauseOverlay').style.opacity='1';
+document.getElementById('pauseOverlay').style.pointerEvents='auto';
+wordInput.disabled=true;
+}
+function resumeGame(){
+if(!isPaused)return;
+isPaused=false;
+document.getElementById('pauseOverlay').style.opacity='0';
+document.getElementById('pauseOverlay').style.pointerEvents='none';
+wordInput.disabled=false;
+wordInput.focus();
+timerInterval=setInterval(()=>{
+timeRemaining--;
+updateStats();
+if(timeRemaining<=0)endGame();
+},1000);
+}
+document.getElementById('pauseOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)resumeGame()});
+
+// ===== Keyboard =====
+document.addEventListener('keydown',e=>{
+if(e.repeat)return;const k=e.key;
+if((k==='p'||k==='P'||k==='Escape')&&isRunning){e.preventDefault();if(isPaused)resumeGame();else pauseGame();return}
+if(k==='m'||k==='M'){e.preventDefault();if(!audioCtx)initAudio();toggleMute();return}
+if((k===' '||k==='Enter')&&!isRunning){e.preventDefault();if(!audioCtx)initAudio();startGame();return}
+});
+
+document.addEventListener('visibilitychange',()=>{
+if(document.hidden&&isRunning&&!isPaused)pauseGame();
 });
 
 // ===== Time controls =====

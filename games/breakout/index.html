@@ -216,7 +216,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
     soundBtn.textContent=muted?'🔇':'🔊';
     try{localStorage.setItem('breakoutMuted',muted?'1':'0')}catch(e){}
     if(muted) bgMusic.stop();
-    else if(state==='playing') bgMusic.start();
+    else if(state==='playing'){try{bgMusic.start()}catch(e){}}
   }
 
   // ---- GAME STATE ----
@@ -540,6 +540,8 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
     }
   });
 
+  canvas.addEventListener('contextmenu',e=>{e.preventDefault()});
+
   // Mouse
   canvas.addEventListener('mousemove',e=>{
     const rect=canvas.getBoundingClientRect();
@@ -593,7 +595,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
     init();
     state='playing';
     overlay.classList.remove('show');
-    bgMusic.start();
+    try{bgMusic.start()}catch(e){}
   }
 
   // ---- LOOP ----

@@ -54,7 +54,7 @@ body{
   background:#08081a;
   flex-shrink:0;overflow:hidden;
 }
-#board{display:block;width:100%;height:auto;aspect-ratio:1/2;}
+#board{display:block;width:100%;height:auto;aspect-ratio:1/2;image-rendering:pixelated;}
 #side-panel{
   display:flex;flex-direction:column;gap:12px;
   min-width:130px;flex-shrink:0;
@@ -229,6 +229,7 @@ body{
   cursor:pointer;transition:all 0.12s;
   display:flex;align-items:center;justify-content:center;
   touch-action:none;font-family:inherit;
+  -webkit-tap-highlight-color:transparent;
 }
 #mobile-controls button:active{
   background:rgba(0,255,247,0.12);
@@ -309,6 +310,7 @@ body{
         <div class="stat-row"><span class="stat-label">SCORE</span><span class="stat-value" id="score-val">0</span></div>
         <div class="stat-row"><span class="stat-label">LEVEL</span><span class="stat-value" id="level-val">1</span></div>
         <div class="stat-row"><span class="stat-label">LINES</span><span class="stat-value" id="lines-val">0</span></div>
+        <div class="stat-row"><span class="stat-label">BEST</span><span class="stat-value" id="best-val" style="color:#ffd700;text-shadow:0 0 10px rgba(255,215,0,0.3)">0</span></div>
       </div>
       <div class="panel-box" id="controls-hint">
         <span>&larr; &rarr; Move</span><span>&uarr; Rotate</span>
@@ -321,6 +323,7 @@ body{
     </div>
   </div>
   <div id="bottom-bar">
+    <a class="icon-btn" href="../../index.html" style="text-decoration:none"><span>←</span><span class="label">BACK</span></a>
     <button class="icon-btn" id="sound-btn"><span id="sound-icon">&#x1F50A;</span><span class="label">SOUND</span></button>
     <button class="icon-btn" id="help-btn"><span>&#x2753;</span><span class="label">HELP</span></button>
   </div>
@@ -617,6 +620,7 @@ let nextPiece=null;
 let score=0;
 let level=1;
 let lines=0;
+let highScore=0;
 let gameOver=false;
 let paused=false;
 let bag=[];
@@ -892,9 +896,12 @@ function updateHUD(){
   document.getElementById('score-val').textContent=score;
   document.getElementById('level-val').textContent=level;
   document.getElementById('lines-val').textContent=lines;
+  document.getElementById('best-val').textContent=highScore;
 }
 function showGameOver(){
   document.getElementById('final-score').textContent=score;
+  if(score>highScore){highScore=score;try{localStorage.setItem('tetrisHighScore',String(highScore))}catch(e){}}
+  updateHUD();
   document.getElementById('game-over-overlay').classList.add('show');
 }
 function hideGameOver(){
@@ -1197,7 +1204,7 @@ function togglePause(){
     bgMusic.stop();
     for(const k of Object.keys(dasState)) stopDAS(k);
   }
-  else bgMusic.start();
+  else try{bgMusic.start()}catch(e){}
 }
 
 let _wasPaused=false;
@@ -1219,7 +1226,7 @@ function toggleMute(){
   btn.classList.toggle('muted',muted);
   document.getElementById('sound-icon').innerHTML=muted?'&#x1F507;':'&#x1F50A;';
   if(muted) bgMusic.stop();
-  else if(!paused&&!gameOver) bgMusic.start();
+  else if(!paused&&!gameOver){try{bgMusic.start()}catch(e){}}
 }
 
 function startDAS(code,action){
@@ -1246,6 +1253,8 @@ function stopDAS(code){
 }
 
 let dasState={};
+
+document.addEventListener('contextmenu',e=>{e.preventDefault()});
 
 document.addEventListener('keydown',(e)=>{
   if(e.repeat) return;
@@ -1368,6 +1377,7 @@ function init(){
   document.getElementById('help-overlay').classList.remove('show');
   board=createBoard();
   score=0;level=1;lines=0;
+  try{highScore=parseInt(localStorage.getItem('tetrisHighScore'))||0}catch(e){}
   gameOver=false;paused=false;
   clearing=null;
   bag=[];
@@ -1389,7 +1399,7 @@ function init(){
   animFrame=requestAnimationFrame(gameLoop);
 
   bgMusic.stop();
-  bgMusic.start();
+  try{bgMusic.start()}catch(e){}
 }
 
 let _restarting=false;

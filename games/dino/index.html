@@ -10,7 +10,7 @@
 body{
   color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none
+  overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent
 }
 body::before{
   content:'';position:fixed;inset:0;z-index:-1;
@@ -114,6 +114,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   let animId;
   let frameCount=0;
   let nightCycle=0;
+let lastTime=0,gTime=0;
 
   let highScoreVal=0;
   try{highScoreVal=parseInt(localStorage.getItem('dinoHigh')||'0')}catch(e){}
@@ -308,23 +309,23 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
   }
 
-  function update(){
+  function update(dt){
     frameCount++;
     speed=6+Math.floor(score/100)*0.5;
     if(speed>16)speed=16;
-    gameSpeed+=(speed-gameSpeed)*0.02;
+    gameSpeed+=(speed-gameSpeed)*0.02*dt;
     nightCycle=Math.min(1,Math.floor(score/300)*0.25);
 
     if(dino.jumping){
-      dino.vy+=0.6;
-      dino.y+=dino.vy;
+      dino.vy+=0.6*dt;
+      dino.y+=dino.vy*dt;
       if(dino.y>=GROUND_Y-40){
         dino.y=GROUND_Y-40;
         dino.vy=0;
         dino.jumping=false;
       }
     }
-    dino.legTimer+=gameSpeed;
+    dino.legTimer+=gameSpeed*dt;
     if(dino.legTimer>8){
       dino.legFrame^=1;
       dino.legTimer=0;
@@ -336,7 +337,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     }
     for(let i=obstacles.length-1;i>=0;i--){
       const o=obstacles[i];
-      o.x-=gameSpeed;
+      o.x-=gameSpeed*dt;
       if(o.x+o.ww<0){obstacles.splice(i,1);continue}
       if(!o.scored&&o.x+o.ww<dino.x){o.scored=1;score++;scoreEl.textContent=score;if(score%100===0)playScore();}
       if(rectCollide({x:dino.x+4,y:dino.y+4,w:dino.w-8,h:dino.h-8},{x:o.x+2,y:o.bottomY-o.h+2,w:o.ww-4,h:o.h-4})){
@@ -347,12 +348,13 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
 
     for(let i=particles.length-1;i>=0;i--){
       const p=particles[i];
-      p.x+=p.vx;p.y+=p.vy;
-      p.life-=0.03;
+      p.x+=p.vx*dt;p.y+=p.vy*dt;
+      p.life-=0.03*dt;
       if(p.life<=0)particles.splice(i,1);
     }
 
-    groundOffset=(groundOffset+gameSpeed)%24;
+    groundOffset=(groundOffset+gameSpeed*dt)%24;
+    gTime+=dt;
   }
 
   function draw(){
@@ -495,6 +497,14 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     ctx.font='14px monospace';
     ctx.fillText('Score: '+score,W-120,25);
     ctx.fillText('Speed: '+speed.toFixed(1),W-120,45);
+    if(state==='paused'){
+      ctx.fillStyle='rgba(0,0,0,0.5)';
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#fff';
+      ctx.font='bold 36px sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('PAUSED',W/2,H/2);
+    }
   }
 
   if(!CanvasRenderingContext2D.prototype.roundRect){
@@ -528,9 +538,12 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     overlay.classList.add('show');
   }
 
-  function gameLoop(){
+  function gameLoop(timestamp){
     try{
-      update();
+      if(state==='paused'){draw();animId=requestAnimationFrame(gameLoop);return}
+      const dt=lastTime?Math.min((timestamp-lastTime)/16.667,3):1;
+      lastTime=timestamp;
+      update(dt);
       draw();
     }catch(e){
       console.error('Game loop error:',e);
@@ -561,16 +574,26 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
 
   document.addEventListener('keydown',e=>{
     if(e.repeat) return;
-    if(e.key===' '||e.key==='ArrowUp'||e.key==='w'||e.key==='W'){
+    if(e.key===' '||e.key==='Enter'||e.key==='ArrowUp'||e.key==='w'||e.key==='W'){
       e.preventDefault();
       handleAction();
     }
     if(e.key==='m'||e.key==='M')toggleSound();
+    if(e.key==='Escape'||e.key==='p'||e.key==='P'){
+      if(state==='running'){state='paused';lastTime=0}
+      else if(state==='paused'){state='running';lastTime=0}
+    }
   });
 
   canvas.addEventListener('click',e=>{e.preventDefault();handleAction();});
   canvas.addEventListener('touchstart',e=>{e.preventDefault();handleAction();},{passive:false});
+  document.addEventListener('touchcancel',function(){});
   playBtn.addEventListener('click',startGame);
+  document.addEventListener('contextmenu',function(e){e.preventDefault()});
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){bgMusic.stop();}
+    else if(state==='running'&&soundEnabled){bgMusic.start();}
+  });
 
   (function initDisplay(){
     ctx.clearRect(0,0,W,H);

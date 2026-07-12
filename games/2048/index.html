@@ -13,7 +13,7 @@ body{
   color:#e8e8ec;
   font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;
   display:flex;justify-content:center;align-items:center;
-  touch-action:none;-webkit-user-select:none;user-select:none;
+  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
   overflow:hidden;
   position:relative;
 }
@@ -215,6 +215,7 @@ body::after{
 .state-win h2{background:linear-gradient(135deg,#f7d875,#f5a623);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .state-lose h2{color:#e74c5c}
 
+.back-link{color:rgba(255,255,255,.5);text-decoration:none;font-size:12px;transition:color .15s;flex-shrink:0}.back-link:hover{color:#00d4ff}
 @media(max-width:420px){
   .game-wrapper{padding:10px;gap:10px}
   .title{font-size:1.6rem}
@@ -231,6 +232,7 @@ body::after{
 <body>
 <div class="game-wrapper">
   <div class="header">
+    <a class="back-link" href="../../index.html">← Back</a>
     <div class="title">2048</div>
     <div class="scores">
       <div class="score-box"><div class="label">Score</div><div class="value" id="score">0</div></div>
@@ -270,6 +272,8 @@ let lastMoveTime = 0;
 let tileId = 0;
 let prevStates = [];
 let mergedIds = new Set();
+let soundEnabled=true;
+try{soundEnabled=localStorage.getItem('g2048sound')!=='0'}catch(e){}
 
 const boardEl = document.getElementById('board');
 const container = document.getElementById('tileContainer');
@@ -286,6 +290,7 @@ const musicBtn = document.getElementById('musicBtn');
 function loadBest(){try{const v=localStorage.getItem('g2048best');if(v)best=+v;else best=0}catch(e){best=0}}
 function saveBest(){try{localStorage.setItem('g2048best',best)}catch(e){}}
 loadBest();bestEl.textContent=best;
+musicBtn.textContent=soundEnabled?'♫ Sound':'♪ Sound';
 
 function emptyGrid(){return Array.from({length:SIZE},()=>Array(SIZE).fill(null))}
 function cloneGrid(g){return g.map(r=>[...r])}
@@ -560,6 +565,7 @@ document.addEventListener('keydown',e=>{
   const map={ArrowUp:0,ArrowRight:1,ArrowDown:2,ArrowLeft:3};
   dir=map[e.key]!==undefined?map[e.key]:-1;
   if(dir>=0){e.preventDefault();handleMove(dir);}
+  if(e.key==='m'||e.key==='M')musicBtn.click();
 });
 
 let audioCtx=null;
@@ -569,6 +575,7 @@ function getAudioCtx(){
   return audioCtx;
 }
 function playTone(freq,dur,type='sine',vol=.08,startOff=0){
+  if(!soundEnabled)return;
   try{
     const ctx=getAudioCtx();
     const osc=ctx.createOscillator();
@@ -588,11 +595,10 @@ function playGameOverSound(){playTone(400,.15,'sawtooth',.05);setTimeout(()=>pla
 const bgMusic={
   gainNode:null,playing:false,nodes:[],
   start(){
-    if(this.playing)return;
+    if(!soundEnabled||this.playing)return;
     try{
       const ctx=getAudioCtx();
       this.playing=true;
-      musicBtn.textContent='♫ Music';
       this.gainNode=ctx.createGain();
       this.gainNode.gain.value=0.20;
       this.gainNode.connect(ctx.destination);
@@ -677,7 +683,6 @@ const bgMusic={
   },
   stop(){
     this.playing=false;
-    musicBtn.textContent='♪ Music';
     if(this._timer){clearTimeout(this._timer);this._timer=null;}
     this.nodes.forEach(n=>{try{n.stop()}catch(e){}});
     this.nodes=[];
@@ -686,15 +691,21 @@ const bgMusic={
   toggle(){
     if(this.playing)this.stop();
     else this.start();
-    musicBtn.textContent=this.playing?'♫ Music':'♪ Music';
   }
 };
 
 newGameBtn.addEventListener('click',()=>{init();bgMusic.start();});
 undoBtn.addEventListener('click',()=>{undo();});
-musicBtn.addEventListener('click',()=>{bgMusic.toggle();});
+musicBtn.addEventListener('click',()=>{
+  soundEnabled=!soundEnabled;
+  try{localStorage.setItem('g2048sound',soundEnabled?'1':'0')}catch(e){}
+  musicBtn.textContent=soundEnabled?'♫ Sound':'♪ Sound';
+  if(!soundEnabled)bgMusic.stop();
+  else bgMusic.start();
+});
 
 function init(){
+  bgMusic.stop();
   grid=emptyGrid();score=0;displayScore=0;over=false;won=false;keepPlaying=false;
   lastMoveTime=0;prevStates=[];mergedIds.clear();
   overlay.classList.remove('active','state-win','state-lose');
@@ -719,10 +730,12 @@ window.addEventListener('resize',()=>{
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
     bgMusic.stop();
-  } else if(!over&&!won){
+  } else if(!over&&soundEnabled){
     bgMusic.start();
   }
 });
+document.addEventListener('contextmenu',function(e){e.preventDefault()});
+document.addEventListener('touchcancel',function(){});
 })();
 </script>
 </body>

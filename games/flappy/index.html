@@ -17,7 +17,8 @@ overflow:hidden;
 font-family:'Courier New',monospace;
 touch-action:none;
 -webkit-user-select:none;
-user-select:none
+user-select:none;
+-webkit-tap-highlight-color:transparent
 }
 #gameWrap{position:relative}
 canvas{
@@ -30,6 +31,22 @@ inset 0 0 30px rgba(0,0,0,0.5);
 max-width:100vw;
 max-height:100dvh
 }
+#backLink{
+position:absolute;
+top:8px;
+left:8px;
+color:rgba(255,255,255,0.4);
+text-decoration:none;
+font-size:12px;
+font-family:Arial,sans-serif;
+padding:6px 10px;
+background:rgba(0,0,0,0.45);
+border:1px solid rgba(255,255,255,0.12);
+border-radius:6px;
+z-index:10;
+transition:0.2s
+}
+#backLink:hover{color:#fff;background:rgba(0,0,0,0.65)}
 #muteBtn{
 position:absolute;
 top:8px;
@@ -57,6 +74,7 @@ font-family:Arial,sans-serif
 <body>
 <div id="gameWrap">
 <canvas id="c"></canvas>
+<a id="backLink" href="../../index.html">← Back</a>
 <button id="muteBtn">&#9835;</button>
 </div>
 <script>
@@ -90,7 +108,7 @@ window.addEventListener('resize',resize);
 let audioCtx=null,muted=false,audioStarted=false;
 function initAudio(){
 if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-if(audioCtx.state==='suspended')audioCtx.resume();
+if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
 audioStarted=true;
 }
 function playSound(type){
@@ -144,15 +162,16 @@ muteBtn.addEventListener('pointerdown',(e)=>{
   muteBtn.textContent=muted?'\u2715':'\u266B';
   muteBtn.classList.toggle('muted',muted);
   if(muted){
-    bgMusic.stop();
+    try{bgMusic.stop()}catch(e){}
   } else {
     initAudio();
-    bgMusic.start();
+    try{bgMusic.start()}catch(e){}
   }
 });
 
 let gameState='idle';
-let score=0,highScore=parseInt(localStorage.getItem('flappy_high'))||0;
+let score=0,highScore=0;
+try{highScore=parseInt(localStorage.getItem('flappy_high'))||0;}catch(e){}
 let frame=0;
 
 const bird={x:90,y:260,w:30,h:24,vel:0,rot:0,targetRot:0};
@@ -233,7 +252,7 @@ if(muted)this.stop();
 start(){
 if(this._playing)return;
 if(!audioCtx)initAudio();
-if(audioCtx.state==='suspended')audioCtx.resume();
+if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
 this._playing=true;
 this._step=0;
 this._nextTime=audioCtx.currentTime+0.05;
@@ -267,9 +286,11 @@ return null;
 }
 
 function flap(){
+  if(gameState==='paused')return;
+
   if(!audioStarted){
     initAudio();
-    bgMusic.start();
+    try{bgMusic.start()}catch(e){}
   }
 
   if(gameState==='gameover'){
@@ -336,13 +357,15 @@ bird.targetRot=Math.min(MAX_ANGLE,bird.vel*5+20);
 playSound('hit');
 setTimeout(()=>playSound('die'),200);
 if(score>highScore){
-highScore=score;
-localStorage.setItem('flappy_high',highScore);
+  highScore=score;
+  try{localStorage.setItem('flappy_high',highScore);}catch(e){}
 }
 }
 
 function update(dt){
   frame++;
+
+  if(gameState==='paused')return;
 
   if(gameState==='idle'){
     bird.y=260+Math.sin(frame*0.04)*6;
@@ -846,6 +869,25 @@ ctx.fillText(medal.label.substring(0,4),cx,cy+r+10);
 ctx.restore();
 }
 
+function drawPauseOverlay(){
+  if(gameState!=='paused')return;
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,0.5)';
+  ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.shadowColor='#00ffaa';
+  ctx.shadowBlur=25;
+  ctx.fillStyle='#00ffaa';
+  ctx.font='bold 44px "Courier New",monospace';
+  ctx.fillText('PAUSED',W/2,H/2);
+  ctx.shadowBlur=10;
+  ctx.fillStyle='rgba(0,255,170,0.5)';
+  ctx.font='16px "Courier New",monospace';
+  ctx.fillText('Press P or Escape to resume',W/2,H/2+50);
+  ctx.restore();
+}
+
 function drawGameOver(){
 if(gameState!=='gameover')return;
 ctx.save();
@@ -953,17 +995,18 @@ drawBird();
 drawScore();
 drawIdleScreen();
 drawGameOver();
+drawPauseOverlay();
 
 ctx.restore();
 }
 
-let lastTime=0;
+let lastTime=0,rafId=null;
 function loop(time){
   const dt=Math.min((time-lastTime)/16.667,3);
   lastTime=time;
   update(dt);
   draw(dt);
-requestAnimationFrame(loop);
+rafId=requestAnimationFrame(loop);
 }
 
 let inputPointerId=null;
@@ -987,11 +1030,23 @@ canvas.addEventListener('pointercancel',(e)=>{
 
 document.addEventListener('keydown',(e)=>{
   if(e.repeat) return;
+  if(e.key==='m'||e.key==='M'){e.preventDefault();muteBtn.click();return;}
+  if(e.key==='Escape'||e.key==='p'||e.key==='P'){
+    e.preventDefault();
+    if(gameState==='playing'){
+      gameState='paused';
+    }else if(gameState==='paused'){
+      gameState='playing';
+    }
+    return;
+  }
   if(e.code==='Space'||e.key===' '){
     e.preventDefault();
     flap();
   }
 });
+
+document.addEventListener('contextmenu',e=>e.preventDefault());
 
 requestAnimationFrame((time)=>{lastTime=time;loop(time);});
 })();

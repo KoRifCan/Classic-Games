@@ -32,6 +32,9 @@ body::before{
 }
 .header .score span{color:#00ff88;font-weight:700}
 .header .high span{color:#ffd700;font-weight:700}
+#back-link{font-size:12px;color:rgba(255,255,255,.35);text-decoration:none;letter-spacing:.5px;transition:color .2s;white-space:nowrap}
+#back-link:hover{color:#00ff88}
+#back-link span{display:inline-block;margin-right:2px}
 .header-actions{display:flex;gap:6px;align-items:center}
 .sound-btn{
   background:none;border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#888;
@@ -102,6 +105,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
 <body>
 <div class="game-wrapper">
   <div class="header">
+    <a id="back-link" href="../../index.html"><span>←</span> Back</a>
     <div class="score">🍎 <span id="score">0</span></div>
     <div class="header-actions">
       <div class="high">🏆 <span id="high">0</span></div>
@@ -158,6 +162,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
   let lastMove;
   let paused=false;
   let animId;
+  let dieTimeout=null;
 
   // ---- DIRECTIONS ----
   const UP={x:0,y:-1},DOWN={x:0,y:1},LEFT={x:-1,y:0},RIGHT={x:1,y:0};
@@ -257,7 +262,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
     if(!soundEnabled){
       bgMusic.stop();
     }else if(state==='playing'){
-      bgMusic.start();
+      try{bgMusic.start()}catch(e){}
     }
   }
 
@@ -370,6 +375,8 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
 
   // ---- GAME INIT ----
   function init(){
+    if(animId){cancelAnimationFrame(animId);}
+    if(dieTimeout){clearTimeout(dieTimeout);dieTimeout=null;}
     const midX=Math.floor(COLS/2),midY=Math.floor(ROWS/2);
     snake=[
       {x:midX,y:midY},
@@ -476,7 +483,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
 
   function die(){
     state='dead';
-    setTimeout(()=>showOverlay('dead'),200);
+    dieTimeout=setTimeout(()=>showOverlay('dead'),200);
     for(const seg of snake){
       emitParticles(seg.x*GRID+GRID/2,seg.y*GRID+GRID/2,3,'#00ff88',0.8);
     }
@@ -517,7 +524,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
       state='playing';
       hideOverlay();
       lastMove=performance.now();
-      bgMusic.start();
+      try{bgMusic.start()}catch(e){}
     }
   }
 
@@ -682,6 +689,8 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
     nextDirection=dir;
   }
 
+  canvas.addEventListener('contextmenu',e=>{e.preventDefault()});
+
   document.addEventListener('keydown',e=>{
     if(e.repeat) return;
     if(e.key==='m'||e.key==='M'){
@@ -735,6 +744,11 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
     touchStart=null;
   },{passive:false});
 
+  canvas.addEventListener('touchcancel',e=>{
+    e.preventDefault();
+    touchStart=null;
+  },{passive:false});
+
   canvas.addEventListener('click',()=>{
     if(state==='paused'){togglePause();return;}
     if(state==='menu'||state==='dead')startGame();
@@ -775,7 +789,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
     state='playing';
     hideOverlay();
     lastMove=performance.now();
-    bgMusic.start();
+    try{bgMusic.start()}catch(e){}
   }
 
   if('ontouchstart' in window||navigator.maxTouchPoints>0){

@@ -9,9 +9,9 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{
   background:linear-gradient(135deg,#080012,#0a0a24,#080012);
-  min-height:100vh;display:flex;justify-content:center;align-items:center;
+  min-height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,sans-serif;
-  color:#e0e0e0;padding:16px;
+  color:#e0e0e0;padding:16px;-webkit-tap-highlight-color:transparent
 }
 .glass{
   background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);
@@ -245,18 +245,22 @@ h1{
 
   function loadBest(){
     const key=`puzzle_best_${gridSize}x${gridSize}`;
-    const best=JSON.parse(localStorage.getItem(key));
-    if(best)bestDisplay.textContent=`Best: ${best.moves} moves in ${formatTime(best.time)}`;
-    else bestDisplay.textContent='Best: —';
+    try{
+      const best=JSON.parse(localStorage.getItem(key));
+      if(best)bestDisplay.textContent=`Best: ${best.moves} moves in ${formatTime(best.time)}`;
+      else bestDisplay.textContent='Best: —';
+    }catch(e){bestDisplay.textContent='Best: —';}
   }
 
   function saveBest(){
     const key=`puzzle_best_${gridSize}x${gridSize}`;
-    const existing=JSON.parse(localStorage.getItem(key));
-    if(!existing||moves<existing.moves||(moves===existing.moves&&seconds<existing.time)){
-      localStorage.setItem(key,JSON.stringify({moves,time:seconds}));
-      return true;
-    }
+    try{
+      const existing=JSON.parse(localStorage.getItem(key));
+      if(!existing||moves<existing.moves||(moves===existing.moves&&seconds<existing.time)){
+        localStorage.setItem(key,JSON.stringify({moves,time:seconds}));
+        return true;
+      }
+    }catch(e){}
     return false;
   }
 
@@ -293,7 +297,7 @@ h1{
     const{row,col}=pos;
     const dr=Math.abs(row-emptyRow),dc=Math.abs(col-emptyCol);
     if(!((dr===1&&dc===0)||(dr===0&&dc===1)))return;
-    if(firstTap&&!muted&&audioCtx){firstTap=false;if(audioCtx.state==='suspended')audioCtx.resume();}
+    if(firstTap&&!muted&&audioCtx){firstTap=false;if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});}
     initAudio();
     if(!timerStarted){timerStarted=true;startTimer();}
     grid[emptyRow][emptyCol]=val;
@@ -378,7 +382,7 @@ h1{
 
   function resetAndShuffle(){
     initAudio();
-    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
     if(isShuffling)return;
     isShuffling=true;
     shuffleBtn.disabled=true;
@@ -448,7 +452,9 @@ h1{
   });
 
   document.addEventListener('keydown',e=>{
-    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+    if(e.repeat)return;
+    if(e.key==='m'||e.key==='M'){e.preventDefault();muteBtn.click();return;}
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
     if(isShuffling||isSolved)return;
     const k=e.key;
     let val=null;
@@ -462,14 +468,16 @@ h1{
   });
 
   muteBtn.addEventListener('click',()=>{
+    if(!audioCtx&&!muted)initAudio();
     muted=!muted;
     muteBtn.textContent=muted?'🔇':'🔊';
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
     if(masterGain)masterGain.gain.value=muted?0:0.2;
   });
 
   puzzleGrid.addEventListener('pointerdown',e=>{
     if(firstTap){firstTap=false;initAudio();}
-    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
   });
 
   let resizeTimer;
@@ -481,6 +489,7 @@ h1{
     },200);
   });
 
+  document.addEventListener('contextmenu',e=>e.preventDefault());
   initBoard();render();updateStats();loadBest();resetAndShuffle();
 })();
 </script>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Memory</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🃏</text></svg>">
 <style>
@@ -13,7 +13,7 @@ min-height:100vh;display:flex;justify-content:center;align-items:center;
 background:linear-gradient(135deg,#060618,#12082a,#08122e,#060618);
 background-size:400% 400%;
 animation:gradientBG 20s ease infinite;
-color:#e0e0e0;overflow-x:hidden
+color:#e0e0e0;overflow:hidden
 }
 @keyframes gradientBG{
 0%{background-position:0% 50%}
@@ -66,8 +66,11 @@ box-shadow:0 4px 16px rgba(0,0,0,.3)
 .btn.mute.muted{opacity:.5;background:rgba(255,68,68,.12);border-color:rgba(255,68,68,.2)}
 .grid{
 display:grid;justify-content:center;gap:8px;margin:0 auto;
-max-width:520px;perspective:1200px
+max-width:520px;perspective:1200px;touch-action:manipulation
 }
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;width:100%}
+.top-bar .back-link{color:#8888cc;text-decoration:none;font-size:13px;padding:4px 12px;border-radius:8px;background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);transition:all .2s}
+.top-bar .back-link:hover{color:#aaaaff;background:rgba(255,255,255,0.1)}
 .grid-4{grid-template-columns:repeat(4,1fr)}
 .grid-6{grid-template-columns:repeat(6,1fr)}
 .card{
@@ -187,7 +190,7 @@ position:relative;overflow:hidden;z-index:101
 .modal .stars-big .star-off{color:#333}
 .modal .btn{margin-top:10px}
 #particles{position:fixed;inset:0;z-index:102;pointer-events:none}
-@media(max-width:440px){
+@media(max-width:420px){
 .container{padding:10px}
 .grid{gap:5px}
 .card-face{font-size:14px}
@@ -207,6 +210,7 @@ position:relative;overflow:hidden;z-index:101
 </head>
 <body>
 <div class="container">
+<div class="top-bar"><a href="../../index.html" class="back-link">&larr; Back to Hub</a><div></div></div>
 <h1>Memory</h1>
 <p class="sub">Flip cards &amp; find all pairs</p>
 <div class="stats">
@@ -247,23 +251,34 @@ position:relative;overflow:hidden;z-index:101
 <button class="btn primary" id="btnReplay">Play Again</button>
 </div>
 </div>
+<div id="pauseOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:99;opacity:0;pointer-events:none;transition:opacity .4s">
+<div style="background:rgba(14,14,38,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:36px 28px;text-align:center;max-width:280px;width:90%">
+<div style="font-size:48px;margin-bottom:8px">⏸️</div>
+<h2 style="font-size:24px;margin-bottom:8px;background:linear-gradient(135deg,#00d4ff,#7b2ff7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Paused</h2>
+<p style="color:#888;font-size:14px">Press <span style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:4px;font-family:inherit">P</span> or <span style="background:rgba(255,255,255,.08);padding:2px 8px;border-radius:4px;font-family:inherit">Esc</span> to resume</p>
+</div>
+</div>
 <canvas id="particles"></canvas>
 <script>
 const EMOJIS = ['🎮','🎯','🎪','🎨','🎭','🎸','🎲','🎰','🚀','🌈','🦄','🍕','🍀','🎃','👾','🤖','🐉','🦖','⚡','🔥','💎','🌟','🍄','🐱','🦊','🐼','🎉','🍩','🧩','🎳','🏆','🪐'];
 const GRID_CONFIGS = {4:{cols:4,pairs:8},6:{cols:6,pairs:18}};
 const STAR_THRESHOLDS = {4:{three:10,two:14},6:{three:24,two:34}};
 
+function lsGet(k,def){
+try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):def}catch(e){return def}
+}
 let state = {
 gridSize:4,cards:[],flipped:[],matched:0,totalPairs:8,
 moves:0,timer:0,timerRunning:false,timerInterval:null,
-locked:false,
-muted:JSON.parse(localStorage.getItem('memoryMuted')||'false'),
-best:JSON.parse(localStorage.getItem('memoryBest')||'{}'),
+locked:false,gameState:'playing',
+muted:lsGet('memoryMuted',false),
+best:lsGet('memoryBest',{}),
 };
 
 let audioCtx=null;
 let particles=[];
 let particleFrame=null;
+let winTimeout=null;
 
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
@@ -342,6 +357,7 @@ melody:[
 ],
     init(){
       if(!audioCtx)initAudio();
+      if(!audioCtx)return;
       if(!this.gain){
         this.gain=audioCtx.createGain();
         this.gain.gain.value=0.20;
@@ -460,6 +476,10 @@ if(ctx)ctx.clearRect(0,0,c.width,c.height);
 }
 
 function initGame(){
+state.gameState='playing';
+document.getElementById('pauseOverlay').style.opacity='0';
+document.getElementById('pauseOverlay').style.pointerEvents='none';
+if(winTimeout){clearTimeout(winTimeout);winTimeout=null}
 clearInterval(state.timerInterval);
 state.timerRunning=false;state.moves=0;state.matched=0;
 state.timer=0;state.flipped=[];state.locked=false;
@@ -558,6 +578,7 @@ $('#best').innerHTML=b.moves+' '+starsHTML(s);
 }
 
 function win(){
+  state.gameState='gameover';
   clearInterval(state.timerInterval);
   state.timerRunning=false;
   bgMusic.stop();
@@ -568,11 +589,11 @@ const curStars=getStars(cur.moves,state.gridSize);
 let newBest=false;
 if(!state.best[key]||cur.moves<state.best[key].moves||(cur.moves===state.best[key].moves&&cur.time<state.best[key].time)){
 state.best[key]=cur;
-localStorage.setItem('memoryBest',JSON.stringify(state.best));
+try{localStorage.setItem('memoryBest',JSON.stringify(state.best))}catch(e){}
 newBest=true;
 }
 updateStats();
-setTimeout(()=>{
+winTimeout=setTimeout(()=>{
 const s=getStars(state.moves,state.gridSize);
 $('#winStars').innerHTML=starsHTML(s);
 $('#summary').innerHTML=
@@ -583,9 +604,47 @@ startParticles();
 },600);
 }
 
-$('#grid').addEventListener('click',e=>{
+function pauseGame(){
+if(state.gameState!=='playing')return;
+state.gameState='paused';
+if(state.timerRunning){
+clearInterval(state.timerInterval);
+state.timerRunning=false;
+state.timerInterval=null;
+}
+bgMusic.stop();
+document.getElementById('pauseOverlay').style.opacity='1';
+document.getElementById('pauseOverlay').style.pointerEvents='auto';
+}
+function resumeGame(){
+if(state.gameState!=='paused')return;
+state.gameState='playing';
+document.getElementById('pauseOverlay').style.opacity='0';
+document.getElementById('pauseOverlay').style.pointerEvents='none';
+if(state.moves>0){
+state.timerRunning=true;
+state.timerInterval=setInterval(tick,1000);
+}
+bgMusic.start();
+}
+document.getElementById('pauseOverlay').addEventListener('click',e=>{
+if(e.target===e.currentTarget)resumeGame();
+});
+
+let touchUsed=false;
+$('#grid').addEventListener('touchstart',e=>{
 const c=e.target.closest('.card');
-if(!c)return;
+if(!c||state.gameState!=='playing')return;
+e.preventDefault();
+touchUsed=true;
+flipCard(c,+c.dataset.index);
+},{passive:false});
+$('#grid').addEventListener('touchend',e=>{e.preventDefault()},{passive:false});
+$('#grid').addEventListener('touchcancel',()=>{touchUsed=false});
+$('#grid').addEventListener('click',e=>{
+if(touchUsed){touchUsed=false;return}
+const c=e.target.closest('.card');
+if(!c||state.gameState!=='playing')return;
 flipCard(c,+c.dataset.index);
 });
 
@@ -618,7 +677,7 @@ $('#btnMute').addEventListener('click',function(){
   state.muted=!state.muted;
   this.classList.toggle('muted');
   this.textContent=state.muted?'🔇':'🔊';
-  localStorage.setItem('memoryMuted',JSON.stringify(state.muted));
+  try{localStorage.setItem('memoryMuted',JSON.stringify(state.muted))}catch(e){}
   if(audioCtx&&bgMusic.gain){
     bgMusic.gain.gain.linearRampToValueAtTime(state.muted?0.001:0.20,audioCtx.currentTime+0.05);
   }
@@ -627,6 +686,19 @@ $('#btnMute').addEventListener('click',function(){
 addEventListener('resize',()=>{
 const c=$('#particles');
 if(c){c.width=innerWidth;c.height=innerHeight}
+});
+
+document.addEventListener('keydown',e=>{
+if(e.repeat)return;
+const k=e.key;
+if(k==='Escape'||k==='p'||k==='P'){e.preventDefault();if(state.gameState==='playing')pauseGame();else if(state.gameState==='paused')resumeGame();return}
+if(k===' '||k==='Enter'){e.preventDefault();if($('#overlay').classList.contains('show'))$('#btnReplay').click();else if(state.gameState==='paused')resumeGame();return}
+if(k==='m'||k==='M'){e.preventDefault();$('#btnMute').click();return}
+if(k==='r'||k==='R'){e.preventDefault();$('#btnNew').click();return}
+});
+
+document.addEventListener('visibilitychange',()=>{
+if(document.hidden&&state.gameState==='playing')pauseGame();
 });
 
 if(state.muted){$('#btnMute').classList.add('muted');$('#btnMute').textContent='🔇'}
