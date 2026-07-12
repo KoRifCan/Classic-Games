@@ -632,18 +632,10 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
       let x=seg.x*GRID+GRID/2;
       let y=seg.y*GRID+GRID/2;
 
-      if(i===0){
-        const prev=snake[1];
-        if(prev&&state==='playing'){
-          x=lerp(prev.x*GRID+GRID/2,seg.x*GRID+GRID/2,t);
-          y=lerp(prev.y*GRID+GRID/2,seg.y*GRID+GRID/2,t);
-        }
-      }else if(i===len-1&&len>1){
-        const prev=snake[len-2];
-        if(state==='playing'){
-          x=lerp(seg.x*GRID+GRID/2,prev.x*GRID+GRID/2,t);
-          y=lerp(seg.y*GRID+GRID/2,prev.y*GRID+GRID/2,t);
-        }
+      if(state==='playing'&&i<len-1){
+        const next=snake[i+1];
+        x=lerp(next.x*GRID+GRID/2,seg.x*GRID+GRID/2,t);
+        y=lerp(next.y*GRID+GRID/2,seg.y*GRID+GRID/2,t);
       }
 
       const ratio=i/len;
@@ -695,7 +687,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
   // ---- INPUT ----
   function setDirection(dir){
     if(!opposite[dir])return;
-    if(dir===opposite[direction]||dir===opposite[nextDirection])return;
+    if(dir===opposite[direction])return;
     nextDirection=dir;
   }
 

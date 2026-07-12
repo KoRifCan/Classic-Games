@@ -215,8 +215,7 @@ h1{
         tile.style.transform=`translate(${c*cs+GAP/2}px,${r*cs+GAP/2}px)`;
         tile.style.background=getTileColor(val);
         if(val===r*gridSize+c+1)tile.classList.add('correct');
-        tile.addEventListener('click',()=>moveTile(val));
-        tile.addEventListener('pointerdown',e=>e.preventDefault());
+        tile.addEventListener('pointerdown',e=>{e.preventDefault();moveTile(val);});
         puzzleGrid.appendChild(tile);
       }
     }
@@ -474,7 +473,7 @@ h1{
     },200);
   });
 
-  initBoard();render();updateStats();loadBest();
+  initBoard();render();updateStats();loadBest();resetAndShuffle();
 })();
 </script>
 </body>

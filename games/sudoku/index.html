@@ -539,10 +539,6 @@ canvas#board{
       mistakes++;
       playWrong();
       drawBoard();
-      setTimeout(()=>{
-        if(board[r][c]===num)board[r][c]=0;
-        drawBoard();
-      },400);
       return;
     }
     board[r][c]=num;
@@ -578,7 +574,7 @@ canvas#board{
     pencil[cell.r][cell.c]=[];
     playPlace();
     drawBoard();
-    checkComplete();
+    if(empties.length>1)checkComplete();
   }
 
   function checkComplete(){

@@ -813,14 +813,13 @@ function softDrop(){
   if(moveDown()) score+=1;
   updateHUD();
 }
+let dropAnim=null;
 function hardDrop(){
-  if(!currentPiece||gameOver||paused||clearing) return;
+  if(!currentPiece||gameOver||paused||clearing||dropAnim) return;
   const gy=getGhostY(currentPiece.shape,currentPiece.x,currentPiece.y);
-  const dropped=gy-currentPiece.y;
-  currentPiece.y=gy;
-  score+=dropped*2;
+  if(gy===currentPiece.y){lockPiece();return;}
+  dropAnim={startY:currentPiece.y,targetY:gy,frame:0,duration:gy-currentPiece.y};
   playSound('drop');
-  lockPiece();
 }
 
 function rotatePiece(direction=1){
@@ -1143,6 +1142,15 @@ function gameLoop(timestamp){
     if(clearing){
       clearing.frame++;
       if(clearing.frame>=CLEAR_FRAMES) processClear();
+    } else if(dropAnim&&currentPiece){
+      dropAnim.frame++;
+      currentPiece.y=dropAnim.startY+Math.floor((dropAnim.targetY-dropAnim.startY)*Math.min(dropAnim.frame/dropAnim.duration,1));
+      if(dropAnim.frame>=dropAnim.duration){
+        currentPiece.y=dropAnim.targetY;
+        score+=dropAnim.duration*2;
+        dropAnim=null;
+        lockPiece();
+      }
     } else if(currentPiece){
       dropAccum+=dt;
       const interval=getDropInterval();

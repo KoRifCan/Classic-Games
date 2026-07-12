@@ -374,8 +374,8 @@ board[col][row] = currentPlayer;
 renderBoard();
 
 // Animate drop
-const cells = document.querySelectorAll('.cell');
-const cellIdx = row*COLS + col;
+  const cells = document.querySelectorAll('.cell');
+  const cellIdx = col*ROWS + row;
 const targetCell = cells[cellIdx];
 if(targetCell){
 targetCell.classList.add('dropping');

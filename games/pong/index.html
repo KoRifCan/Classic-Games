@@ -63,17 +63,17 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     <canvas id="game" width="600" height="400"></canvas>
     <div class="overlay show" id="overlay">
       <h2 id="overlay-title" style="background:linear-gradient(135deg,#00fff7,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">PONG</h2>
-      <p class="sub" id="overlay-sub">Move paddle with mouse, touch, or arrow keys.<br>First to 5 wins!</p>
+      <p class="sub" id="overlay-sub">Move paddle left/right with mouse, touch, or arrow keys.<br>First to 5 wins!</p>
       <button class="btn" id="playBtn">PLAY</button>
     </div>
   </div>
   <div class="shortcuts">
-    <span><kbd>↑</kbd><kbd>↓</kbd> Move</span>
+    <span><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> Move</span>
     <span><kbd>M</kbd> mute</span>
   </div>
   <div id="controls">
-    <button id="btnUp">↑</button>
-    <button id="btnDown">↓</button>
+    <button id="btnLeft">←</button>
+    <button id="btnRight">→</button>
   </div>
 </div>
 <script>
@@ -225,13 +225,13 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   }
 
   // ---- GAME STATE ----
-  const PADDLE_W=10,PADDLE_H=70,BALL_SIZE=8;
+  const PADDLE_W=100,PADDLE_H=12,BALL_SIZE=8;
   const WIN_SCORE=5;
   let state='menu';
   let scoreA=0,scoreB=0;
-  let playerY,aiY,ballX,ballY,ballVX,ballVY;
+  let playerX,aiX,ballX,ballY,ballVX,ballVY;
   let baseSpeed=5;
-  let mouseY=null;
+  let mouseX=null;
   let touchId=null;
   let keys={};
   let particles=[];
@@ -242,16 +242,16 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     baseSpeed=5;
     const angle=(Math.random()-0.5)*0.8;
     const speed=baseSpeed;
-    ballVX=dir*speed*Math.cos(angle);
-    ballVY=speed*Math.sin(angle);
+    ballVX=speed*Math.cos(angle);
+    ballVY=dir*speed*Math.sin(angle);
   }
 
   function init(){
     scoreA=0;scoreB=0;
-    playerY=H/2-PADDLE_H/2;
-    aiY=H/2-PADDLE_H/2;
+    playerX=W/2-PADDLE_W/2;
+    aiX=W/2-PADDLE_W/2;
     particles=[];
-    resetBall(1);
+    resetBall(-1);
     updateScore();
   }
 
@@ -295,6 +295,8 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   }
 
   // ---- AI ----
+  let aiTargetX=W/2;
+
   function getDifficulty(){
     const total=scoreA+scoreB;
     return Math.min(0.85,0.4+total*0.04);
@@ -302,32 +304,30 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
 
   function updateAI(){
     const diff=getDifficulty();
-    const reactionZone=PADDLE_H*(1-diff);
-    const target=ballY-BALL_SIZE;
-    const diff2=Math.random()*reactionZone-reactionZone/2;
-    const targetY=target+diff2;
-    if(Math.abs(aiY+PADDLE_H/2-targetY)>3){
-      const speed=3+diff*4;
-      if(aiY+PADDLE_H/2<targetY) aiY+=Math.min(speed,targetY-(aiY+PADDLE_H/2));
-      else aiY-=Math.min(speed,(aiY+PADDLE_H/2)-targetY);
+    aiTargetX+=(ballX-aiTargetX)*0.03*diff;
+    const target=aiTargetX-PADDLE_W/2;
+    const speed=1.5+diff*3;
+    if(Math.abs(aiX-target)>2){
+      if(aiX<target) aiX+=Math.min(speed,target-aiX);
+      else aiX-=Math.min(speed,aiX-target);
     }
-    aiY=Math.max(0,Math.min(H-PADDLE_H,aiY));
+    aiX=Math.max(0,Math.min(W-PADDLE_W,aiX));
   }
 
   // ---- UPDATE ----
   function update(){
+    const now=performance.now();
     // Player input
-    if(mouseY!==null){
-      const target=mouseY-PADDLE_H/2;
-      const speed=6;
-      if(Math.abs(playerY-target)>2){
-        if(playerY<target) playerY+=Math.min(speed,target-playerY);
-        else playerY-=Math.min(speed,playerY-target);
+    if(mouseX!==null){
+      const target=mouseX-PADDLE_W/2;
+      if(Math.abs(playerX-target)>2){
+        if(playerX<target) playerX+=Math.min(8,target-playerX);
+        else playerX-=Math.min(8,playerX-target);
       }
     }
-    if(keys['ArrowUp']||keys['KeyW']){playerY-=6}
-    if(keys['ArrowDown']||keys['KeyS']){playerY+=6}
-    playerY=Math.max(0,Math.min(H-PADDLE_H,playerY));
+    if(keys['ArrowLeft']||keys['KeyA']){playerX-=6}
+    if(keys['ArrowRight']||keys['KeyD']){playerX+=6}
+    playerX=Math.max(0,Math.min(W-PADDLE_W,playerX));
 
     if(state!=='playing') return;
 
@@ -336,30 +336,30 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     ballX+=ballVX;
     ballY+=ballVY;
 
-    // Wall bounce
-    if(ballY<=0){ballY=BALL_SIZE;ballVY=-ballVY;sfxWall();emitParticles(ballX,0,5,'rgba(0,255,247,0.5)')}
-    if(ballY>=H-BALL_SIZE){ballY=H-BALL_SIZE;ballVY=-ballVY;sfxWall();emitParticles(ballX,H,5,'rgba(0,255,247,0.5)')}
+    // Side wall bounce
+    if(ballX<=0){ballX=BALL_SIZE;ballVX=-ballVX;sfxWall();emitParticles(0,ballY,5,'rgba(0,255,247,0.5)')}
+    if(ballX>=W-BALL_SIZE){ballX=W-BALL_SIZE;ballVX=-ballVX;sfxWall();emitParticles(W,ballY,5,'rgba(0,255,247,0.5)')}
 
-    // AI paddle (left)
-    if(ballVX<0&&ballX<=PADDLE_W+2&&ballX>=0&&ballY+BALL_SIZE>aiY&&ballY<aiY+PADDLE_H){
-      ballX=PADDLE_W+2;
-      ballVX=-ballVX;
+    // AI paddle (top)
+    if(ballVY<0&&ballY<=PADDLE_H+BALL_SIZE+2&&ballY>=0&&ballX+BALL_SIZE>aiX&&ballX-BALL_SIZE<aiX+PADDLE_W){
+      ballY=PADDLE_H+BALL_SIZE+2;
+      ballVY=-ballVY;
       baseSpeed+=0.15;
-      const hit=((ballY+BALL_SIZE/2)-(aiY+PADDLE_H/2))/(PADDLE_H/2);
-      ballVY+=hit*1.5;
+      const hit=((ballX+BALL_SIZE/2)-(aiX+PADDLE_W/2))/(PADDLE_W/2);
+      ballVX+=hit*1.5;
       sfxPaddle();
-      emitParticles(PADDLE_W,ballY+BALL_SIZE/2,8,'rgba(0,255,247,0.8)');
+      emitParticles(ballX,PADDLE_H,8,'rgba(0,255,247,0.8)');
     }
 
-    // Player paddle (right)
-    if(ballVX>0&&ballX>=W-PADDLE_W-BALL_SIZE-2&&ballX<=W-BALL_SIZE&&ballY+BALL_SIZE>playerY&&ballY<playerY+PADDLE_H){
-      ballX=W-PADDLE_W-BALL_SIZE-2;
-      ballVX=-ballVX;
+    // Player paddle (bottom)
+    if(ballVY>0&&ballY>=H-PADDLE_H-BALL_SIZE-2&&ballY<=H-BALL_SIZE&&ballX+BALL_SIZE>playerX&&ballX-BALL_SIZE<playerX+PADDLE_W){
+      ballY=H-PADDLE_H-BALL_SIZE-2;
+      ballVY=-ballVY;
       baseSpeed+=0.15;
-      const hit=((ballY+BALL_SIZE/2)-(playerY+PADDLE_H/2))/(PADDLE_H/2);
-      ballVY+=hit*1.5;
+      const hit=((ballX+BALL_SIZE/2)-(playerX+PADDLE_W/2))/(PADDLE_W/2);
+      ballVX+=hit*1.5;
       sfxPaddle();
-      emitParticles(W-PADDLE_W,ballY+BALL_SIZE/2,8,'rgba(244,114,182,0.8)');
+      emitParticles(ballX,H-PADDLE_H,8,'rgba(244,114,182,0.8)');
     }
 
     // Clamp ball speed
@@ -370,27 +370,28 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
       ballVY=(ballVY/speed)*maxSpeed;
     }
 
-    // Scoring
-    if(ballX<0){
-      scoreB++;
-      updateScore();
-      sfxScore();
-      emitParticles(0,ballY+BALL_SIZE/2,12,'#f472b6');
-      if(scoreB>=WIN_SCORE){
-        gameOver(false);
-      }else{
-        resetBall(1);
-      }
-    }
-    if(ballX>W){
+    // Scoring: ball past top wall = AI missed = PLAYER scores
+    if(ballY<0){
       scoreA++;
       updateScore();
       sfxScore();
-      emitParticles(W,ballY+BALL_SIZE/2,12,'#00fff7');
+      emitParticles(ballX,0,12,'#00fff7');
       if(scoreA>=WIN_SCORE){
         gameOver(true);
       }else{
         resetBall(-1);
+      }
+    }
+    // Ball past bottom wall = Player missed = AI scores
+    if(ballY>H){
+      scoreB++;
+      updateScore();
+      sfxScore();
+      emitParticles(ballX,H,12,'#f472b6');
+      if(scoreB>=WIN_SCORE){
+        gameOver(false);
+      }else{
+        resetBall(1);
       }
     }
   }
@@ -421,18 +422,18 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     ctx.fillStyle='rgba(255,255,255,.02)';
     for(let x=0;x<W;x+=30)for(let y=0;y<H;y+=30){ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill()}
 
-    // Center line
+    // Center line (horizontal for top-bottom)
     ctx.setLineDash([8,12]);
     ctx.strokeStyle='rgba(255,255,255,.06)';
     ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
     ctx.setLineDash([]);
 
-    // AI paddle
-    drawPaddle(0,aiY,'#00fff7','rgba(0,255,247,0.4)');
+    // AI paddle (top)
+    drawPaddle(aiX,0,'#00fff7','rgba(0,255,247,0.4)');
 
-    // Player paddle
-    drawPaddle(W-PADDLE_W,playerY,'#f472b6','rgba(244,114,182,0.4)');
+    // Player paddle (bottom)
+    drawPaddle(playerX,H-PADDLE_H,'#f472b6','rgba(244,114,182,0.4)');
 
     // Ball
     drawBall();
@@ -458,7 +459,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     ctx.shadowBlur=20;
     ctx.fillStyle=grad;
     ctx.beginPath();
-    ctx.roundRect(x,y,PADDLE_W,PADDLE_H,5);
+    ctx.roundRect(x,y,PADDLE_W,PADDLE_H,6);
     ctx.fill();
     ctx.shadowBlur=0;
     ctx.fillStyle='rgba(255,255,255,0.08)';
@@ -495,6 +496,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     if(e.key==='Enter'||e.key===' '){
       if(state==='menu'||state==='dead'){e.preventDefault();startGame();return}
     }
+    if(state==='menu'||state==='dead') return;
     keys[e.code]=true;
   });
   document.addEventListener('keyup',e=>{keys[e.code]=false});
@@ -502,11 +504,11 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   // Mouse
   canvas.addEventListener('mousemove',e=>{
     const rect=canvas.getBoundingClientRect();
-    const scaleY=H/rect.height;
-    const y=(e.clientY-rect.top)*scaleY;
-    mouseY=Math.max(0,Math.min(H,y));
+    const scaleX=W/rect.width;
+    const x=(e.clientX-rect.left)*scaleX;
+    mouseX=Math.max(0,Math.min(W,x));
   });
-  canvas.addEventListener('mouseleave',()=>{mouseY=null});
+  canvas.addEventListener('mouseleave',()=>{mouseX=null});
 
   // Touch
   canvas.addEventListener('touchstart',e=>{
@@ -515,8 +517,8 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     const t=e.changedTouches[0];
     touchId=t.identifier;
     const rect=canvas.getBoundingClientRect();
-    const scaleY=H/rect.height;
-    mouseY=Math.max(0,Math.min(H,(t.clientY-rect.top)*scaleY));
+    const scaleX=W/rect.width;
+    mouseX=Math.max(0,Math.min(W,(t.clientX-rect.left)*scaleX));
   },{passive:false});
 
   canvas.addEventListener('touchmove',e=>{
@@ -525,8 +527,8 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
       const t=e.changedTouches[i];
       if(t.identifier===touchId){
         const rect=canvas.getBoundingClientRect();
-        const scaleY=H/rect.height;
-        mouseY=Math.max(0,Math.min(H,(t.clientY-rect.top)*scaleY));
+        const scaleX=W/rect.width;
+        mouseX=Math.max(0,Math.min(W,(t.clientX-rect.left)*scaleX));
       }
     }
   },{passive:false});
@@ -534,13 +536,13 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   canvas.addEventListener('touchend',e=>{
     e.preventDefault();
     touchId=null;
-    mouseY=null;
+    mouseX=null;
   },{passive:false});
 
   canvas.addEventListener('touchcancel',e=>{
     e.preventDefault();
     touchId=null;
-    mouseY=null;
+    mouseX=null;
   },{passive:false});
 
   canvas.addEventListener('click',()=>{
@@ -550,16 +552,16 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   playBtn.addEventListener('click',startGame);
 
   // Mobile buttons
-  document.getElementById('btnUp').addEventListener('mousedown',()=>{keys['ArrowUp']=true});
-  document.getElementById('btnUp').addEventListener('mouseup',()=>{keys['ArrowUp']=false});
-  document.getElementById('btnUp').addEventListener('mouseleave',()=>{keys['ArrowUp']=false});
-  document.getElementById('btnUp').addEventListener('touchstart',e=>{e.preventDefault();keys['ArrowUp']=true},{passive:false});
-  document.getElementById('btnUp').addEventListener('touchend',e=>{e.preventDefault();keys['ArrowUp']=false},{passive:false});
-  document.getElementById('btnDown').addEventListener('mousedown',()=>{keys['ArrowDown']=true});
-  document.getElementById('btnDown').addEventListener('mouseup',()=>{keys['ArrowDown']=false});
-  document.getElementById('btnDown').addEventListener('mouseleave',()=>{keys['ArrowDown']=false});
-  document.getElementById('btnDown').addEventListener('touchstart',e=>{e.preventDefault();keys['ArrowDown']=true},{passive:false});
-  document.getElementById('btnDown').addEventListener('touchend',e=>{e.preventDefault();keys['ArrowDown']=false},{passive:false});
+  document.getElementById('btnLeft').addEventListener('mousedown',()=>{keys['ArrowLeft']=true});
+  document.getElementById('btnLeft').addEventListener('mouseup',()=>{keys['ArrowLeft']=false});
+  document.getElementById('btnLeft').addEventListener('mouseleave',()=>{keys['ArrowLeft']=false});
+  document.getElementById('btnLeft').addEventListener('touchstart',e=>{e.preventDefault();keys['ArrowLeft']=true},{passive:false});
+  document.getElementById('btnLeft').addEventListener('touchend',e=>{e.preventDefault();keys['ArrowLeft']=false},{passive:false});
+  document.getElementById('btnRight').addEventListener('mousedown',()=>{keys['ArrowRight']=true});
+  document.getElementById('btnRight').addEventListener('mouseup',()=>{keys['ArrowRight']=false});
+  document.getElementById('btnRight').addEventListener('mouseleave',()=>{keys['ArrowRight']=false});
+  document.getElementById('btnRight').addEventListener('touchstart',e=>{e.preventDefault();keys['ArrowRight']=true},{passive:false});
+  document.getElementById('btnRight').addEventListener('touchend',e=>{e.preventDefault();keys['ArrowRight']=false},{passive:false});
 
   soundBtn.addEventListener('click',toggleSound);
 
@@ -567,19 +569,20 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     document.getElementById('controls').classList.add('show');
   }
 
-  function startGame(){
-    init();
-    state='playing';
-    overlay.classList.remove('show');
-    bgMusic.start();
-  }
-
   // ---- LOOP ----
   function loop(){
     update();
     updateParticles();
     draw();
-    if(state!=='dead') animId=requestAnimationFrame(loop);
+    animId=requestAnimationFrame(loop);
+  }
+
+  function startGame(){
+    init();
+    state='playing';
+    overlay.classList.remove('show');
+    bgMusic.start();
+    if(!animId) loop();
   }
 
   init();

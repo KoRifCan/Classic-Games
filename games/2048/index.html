@@ -97,6 +97,8 @@ body::after{
 .tile.pop{animation:tilePop .2s cubic-bezier(.34,1.56,.64,1) forwards}
 @keyframes tilePop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
 .tile.merged{z-index:20;animation:mergeGlow .32s ease-out forwards}
+.tile.removing{animation:fadeOut .2s ease forwards;pointer-events:none}
+@keyframes fadeOut{to{opacity:0;transform:scale(.6)}}
 @keyframes mergeGlow{
   0%{transform:scale(1);filter:brightness(1)}
   30%{transform:scale(1.18);filter:brightness(1.5)}
@@ -525,7 +527,10 @@ function renderTiles(){
     }
   }
   for(const[id,el]of tileEls){
-    if(!existing.has(id)){el.remove();tileEls.delete(id);}
+    if(!existing.has(id)){
+      el.classList.add('removing');
+      setTimeout(()=>{if(el.parentNode){el.remove();tileEls.delete(id);}},220);
+    }
   }
   mergedIds.clear();
 }
