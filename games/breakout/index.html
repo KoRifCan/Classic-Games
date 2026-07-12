@@ -51,7 +51,8 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
     </div>
   </div>
   <div id="info-bar">
-    <div class="stat" id="score-val">0 <span>SCORE</span></div>
+     <div class="stat" id="score-val">0 <span>SCORE</span></div>
+    <div class="stat" id="high-val">0 <span>BEST</span></div>
     <div class="stat" id="lives-val">❤❤❤ <span>LIVES</span></div>
   </div>
   <div id="canvas-wrap">
@@ -73,6 +74,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
   const ctx=canvas.getContext('2d');
   const scoreEl=document.getElementById('score-val');
   const livesEl=document.getElementById('lives-val');
+  const highEl=document.getElementById('high-val');
   const overlay=document.getElementById('overlay');
   const overlayTitle=document.getElementById('overlay-title');
   const overlaySub=document.getElementById('overlay-sub');
@@ -109,7 +111,9 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
     start(){
       if(this.playing) return;
       if(!this.ctx){
-        this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+        initAudio();
+        if(!audioCtx) return;
+        this.ctx=audioCtx;
         this.master=this.ctx.createGain();
         this.master.gain.value=0.18;
         this.master.connect(this.ctx.destination);
@@ -218,7 +222,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
   // ---- GAME STATE ----
   const PADDLE_W=80,PADDLE_H=12,BALL_SIZE=6;
   const PADDLE_Y_OFFSET=30;
-  const MAX_LIVES=3;
+  const MAX_LIVES=3,MAX_BALL_SPEED=7;
   const BRICK_ROWS=6,BRICK_COLS=10;
   const BRICK_W=52,BRICK_H=18,BRICK_GAP=4;
   const BRICK_TOP=36;
@@ -242,6 +246,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
   let mouseX=null;
   let touchId=null;
   let animId;
+  let highScore=0;
 
   function initBricks(){
     bricks=[];
@@ -265,16 +270,17 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
     ballLaunched=false;
     ballX=W/2;ballY=H-PADDLE_Y_OFFSET-PADDLE_H-BALL_SIZE-2;
     ballVX=0;ballVY=0;
-    ballSpeed=5;
+    ballSpeed=4.5;
     particles=[];
     initBricks();
+    try{highScore=parseInt(localStorage.getItem('breakoutHighScore'))||0}catch(e){}
     updateUI();
   }
 
   function launchBall(){
     if(!ballLaunched){
       ballLaunched=true;
-      const angle=-Math.PI/2+(Math.random()-0.5)*1.0;
+      const angle=-Math.PI/2+(Math.random()-0.5)*1.4;
       ballVX=ballSpeed*Math.cos(angle);
       ballVY=ballSpeed*Math.sin(angle);
     }
@@ -317,6 +323,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
 
   function updateUI(){
     scoreEl.innerHTML=`${score} <span>SCORE</span>`;
+    highEl.innerHTML=`${highScore} <span>BEST</span>`;
     let h='';
     for(let i=0;i<MAX_LIVES;i++) h+=i<lives?'❤':'🖤';
     livesEl.innerHTML=`${h} <span>LIVES</span>`;
@@ -324,7 +331,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
 
   // ---- UPDATE ----
   function update(){
-    if(mouseX!==null){
+    if(state==='playing'&&mouseX!==null){
       const target=mouseX-PADDLE_W/2;
       const speed=8;
       if(Math.abs(paddleX-target)>2){
@@ -361,7 +368,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
       ballY=H-PADDLE_Y_OFFSET-PADDLE_H-BALL_SIZE;
       ballVY=-ballVY;
       const hit=((ballX+BALL_SIZE/2)-(paddleX+PADDLE_W/2))/(PADDLE_W/2);
-      ballVX+=hit*1.2;
+      ballVX+=hit*1.8;
       const spd=Math.sqrt(ballVX*ballVX+ballVY*ballVY);
       if(spd>0){
         ballVX=(ballVX/spd)*ballSpeed;
@@ -371,9 +378,10 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
     }
 
     // Bricks
+    let brickHit=false;
     for(let i=0;i<bricks.length;i++){
       const b=bricks[i];
-      if(!b.alive) continue;
+      if(!b.alive||brickHit) continue;
       const bx=b.x,by=b.y,bw=b.w,bh=b.h;
       if(ballX+BALL_SIZE>bx&&ballX<bx+bw&&ballY+BALL_SIZE>by&&ballY<by+bh){
         b.alive=false;
@@ -381,7 +389,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
         emitParticles(cx,cy,12,b.color.fill);
         sfxBrick(330+b.row*60);
         score+=10+b.row*5;
-        ballSpeed=Math.min(8,4.5+Math.floor(score/150)*0.3);
+        ballSpeed=Math.min(MAX_BALL_SPEED,4.5+Math.floor(score/150)*0.3);
         const spd=Math.sqrt(ballVX*ballVX+ballVY*ballVY);
         if(spd>0&&ballSpeed>0){
           ballVX=(ballVX/spd)*ballSpeed;
@@ -400,6 +408,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
         else if(fromTop||fromBottom)ballVY=-ballVY;
         else if(Math.abs(ballVX)>Math.abs(ballVY))ballVX=-ballVX;
         else ballVY=-ballVY;
+        brickHit=true;
         updateUI();
         break;
       }
@@ -407,21 +416,23 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
 
     // Clamp speed
     const spd=Math.sqrt(ballVX*ballVX+ballVY*ballVY);
-    if(spd>ballSpeed+1){
-      ballVX=(ballVX/spd)*(ballSpeed+1);
-      ballVY=(ballVY/spd)*(ballSpeed+1);
+    if(spd>MAX_BALL_SPEED){
+      ballVX=(ballVX/spd)*MAX_BALL_SPEED;
+      ballVY=(ballVY/spd)*MAX_BALL_SPEED;
     }
 
     // Win check
     if(bricks.every(b=>!b.alive)){
       state='dead';
       sfxWin();
+      if(score>highScore){highScore=score;try{localStorage.setItem('breakoutHighScore',String(highScore))}catch(e){}}
       overlayTitle.textContent='YOU WIN!';
       overlayTitle.style.background='linear-gradient(135deg,#ffd93d,#ff6b6b)';overlayTitle.style.webkitBackgroundClip='text';overlayTitle.style.backgroundClip='text';
-      overlaySub.innerHTML=`Score: <span style="color:#ffd700;font-weight:700">${score}</span>`;
+      overlaySub.innerHTML=`Score: <span style="color:#ffd700;font-weight:700">${score}</span><br>Best: <span style="color:#ffd700;font-weight:700">${highScore}</span>`;
       playBtn.textContent='PLAY AGAIN';
       overlay.classList.add('show');
       bgMusic.stop();
+      updateUI();
     }
   }
 
@@ -433,12 +444,14 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
     if(lives<=0){
       state='dead';
       sfxGameOver();
+      if(score>highScore){highScore=score;try{localStorage.setItem('breakoutHighScore',String(highScore))}catch(e){}}
       overlayTitle.textContent='GAME OVER';
       overlayTitle.style.background='linear-gradient(135deg,#ff4466,#ff0066)';overlayTitle.style.webkitBackgroundClip='text';overlayTitle.style.backgroundClip='text';
-      overlaySub.innerHTML=`Final Score: <span style="color:#ffd700;font-weight:700">${score}</span>`;
+      overlaySub.innerHTML=`Final Score: <span style="color:#ffd700;font-weight:700">${score}</span><br>Best: <span style="color:#ffd700;font-weight:700">${highScore}</span>`;
       playBtn.textContent='PLAY AGAIN';
       overlay.classList.add('show');
       bgMusic.stop();
+      updateUI();
     }else{
       ballLaunched=false;
       ballX=paddleX+PADDLE_W/2;
@@ -581,7 +594,6 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;touch-action:mani
     state='playing';
     overlay.classList.remove('show');
     bgMusic.start();
-    loop();
   }
 
   // ---- LOOP ----

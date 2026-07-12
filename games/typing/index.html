@@ -511,9 +511,14 @@ hsContent.innerHTML = html;
 
 // ===== Input Handling =====
 wordInput.addEventListener('input',function(e){
-if(!isRunning) return;
-const val = this.value;
-if(val.length===0) return;
+  if(!isRunning) return;
+  const val = this.value;
+  if(val.length===0){
+    currentCharIdx = 0;
+    renderWords();
+    updateStats();
+    return;
+  }
 const lastChar = val[val.length-1];
 const word = words[currentWordIdx];
 if(!word) return;
@@ -540,7 +545,9 @@ currentWordIdx++;
 currentCharIdx = 0;
 this.value = '';
 if(currentWordIdx>=words.length-5){
-words = words.concat(pickWords(30));
+  const extra = pickWords(30);
+  while(extra.length>0&&words[words.length-1]===extra[0])extra.shift();
+  words = words.concat(extra);
 }
 renderWords();
 updateStats();

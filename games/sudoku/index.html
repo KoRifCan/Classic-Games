@@ -315,6 +315,35 @@ canvas#board{
     }
   }
 
+  function countSolutions(grid,limit){
+    const g=grid.map(r=>[...r]);
+    let count=0;
+    function solve(g){
+      if(count>=limit)return;
+      for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+        if(g[r][c]===0){
+          for(let n=1;n<=9;n++){
+            let ok=true;
+            for(let i=0;i<9;i++)if(g[r][i]===n||g[i][c]===n){ok=false;break;}
+            if(ok){
+              const br=Math.floor(r/3)*3,bc=Math.floor(c/3)*3;
+              for(let i=0;i<3;i++)for(let j=0;j<3;j++)if(g[br+i][bc+j]===n){ok=false;break;}
+            }
+            if(ok){
+              g[r][c]=n;
+              solve(g);
+              g[r][c]=0;
+            }
+          }
+          return;
+        }
+      }
+      count++;
+    }
+    solve(g);
+    return count;
+  }
+
   function generatePuzzle(diff){
     const sol=Array.from({length:9},()=>Array(9).fill(0));
     function fillGrid(g){
@@ -346,9 +375,15 @@ canvas#board{
     const cells=[];
     for(let r=0;r<9;r++)for(let c=0;c<9;c++)cells.push([r,c]);
     cells.sort(()=>Math.random()-0.5);
-    for(let i=0;i<removeCount&&i<cells.length;i++){
+    let removed=0;
+    for(let i=0;i<cells.length&&removed<removeCount;i++){
       const [r,c]=cells[i];
       puzzle[r][c]=0;
+      if(countSolutions(puzzle,2)>1){
+        puzzle[r][c]=sol[r][c];
+      }else{
+        removed++;
+      }
     }
     return {p:puzzle,s:sol};
   }
@@ -400,36 +435,32 @@ canvas#board{
 
   // ---- BG MUSIC ----
   const bgMusic={
-    ctx:null,masterGain:null,nodes:[],playing:false,_fading:false,_fadeTimer:null,
-    _ensureCtx(){
-      if(!this.ctx){try{this.ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
-      if(this.ctx&&this.ctx.state==='suspended'){try{this.ctx.resume()}catch(e){}}
-    },
+    masterGain:null,nodes:[],playing:false,_fading:false,_fadeTimer:null,
     start(){
       if(!soundEnabled)return;
       if(this._fading){if(this._fadeTimer){clearTimeout(this._fadeTimer);this._fadeTimer=null;}this._destroy();this.playing=false;this._fading=false;}
       if(this.playing)return;
-      this._ensureCtx();
-      if(!this.ctx)return;
+      initAudio();
+      if(!audioCtx)return;
       this.playing=true;this._fading=false;
-      const now=this.ctx.currentTime;
-      const master=this.ctx.createGain();
+      const now=audioCtx.currentTime;
+      const master=audioCtx.createGain();
       master.gain.value=0;
       master.gain.linearRampToValueAtTime(0.2,now+2);
       this.masterGain=master;
 
-      const filter=this.ctx.createBiquadFilter();
+      const filter=audioCtx.createBiquadFilter();
       filter.type='lowpass';filter.frequency.value=380;filter.Q.value=0.7;
       filter.connect(master);
 
-      const bass=this.ctx.createOscillator();
+      const bass=audioCtx.createOscillator();
       bass.type='triangle';
       bass.frequency.value=65.41;
-      const bassG=this.ctx.createGain();
+      const bassG=audioCtx.createGain();
       bassG.gain.value=0.05;
-      const bassL=this.ctx.createOscillator();
+      const bassL=audioCtx.createOscillator();
       bassL.type='sine';bassL.frequency.value=0.1;
-      const bassLG=this.ctx.createGain();bassLG.gain.value=0.025;
+      const bassLG=audioCtx.createGain();bassLG.gain.value=0.025;
       bassL.connect(bassLG);bassLG.connect(bassG.gain);
       bass.connect(bassG);bassG.connect(filter);
       bass.start(now);bassL.start(now);
@@ -437,14 +468,14 @@ canvas#board{
 
       const padFreqs=[261.63,329.63,392.00,440.00,523.25];
       padFreqs.forEach((f,i)=>{
-        const osc=this.ctx.createOscillator();
+        const osc=audioCtx.createOscillator();
         osc.type='sine';
         osc.frequency.value=f;
-        const g=this.ctx.createGain();
+        const g=audioCtx.createGain();
         g.gain.value=0.012;
-        const l=this.ctx.createOscillator();
+        const l=audioCtx.createOscillator();
         l.type='sine';l.frequency.value=0.05+i*0.015;
-        const lg=this.ctx.createGain();lg.gain.value=0.005;
+        const lg=audioCtx.createGain();lg.gain.value=0.005;
         l.connect(lg);lg.connect(g.gain);
         osc.connect(g);g.connect(filter);
         osc.start(now);l.start(now);
@@ -453,10 +484,10 @@ canvas#board{
 
       const arpNotes=[262,330,392,523,392,330,262,294,330,392,523,659,523,392,330,294];
       arpNotes.forEach((f,i)=>{
-        const osc=this.ctx.createOscillator();
+        const osc=audioCtx.createOscillator();
         osc.type='sine';
         osc.frequency.value=f;
-        const g=this.ctx.createGain();
+        const g=audioCtx.createGain();
         g.gain.value=0;
         const t=now+0.5+i*0.18;
         g.gain.setValueAtTime(0,t);
@@ -467,14 +498,14 @@ canvas#board{
         this.nodes.push(osc,g);
       });
 
-      master.connect(this.ctx.destination);
+      master.connect(audioCtx.destination);
       this.nodes.push(master,filter);
     },
     stop(){
       if(!this.playing||this._fading)return;
       this._fading=true;
-      if(this.masterGain&&this.ctx){
-        const now=this.ctx.currentTime;
+      if(this.masterGain&&audioCtx){
+        const now=audioCtx.currentTime;
         this.masterGain.gain.cancelScheduledValues(now);
         this.masterGain.gain.setValueAtTime(this.masterGain.gain.value||0.2,now);
         this.masterGain.gain.linearRampToValueAtTime(0.001,now+1);
@@ -574,7 +605,7 @@ canvas#board{
     pencil[cell.r][cell.c]=[];
     playPlace();
     drawBoard();
-    if(empties.length>1)checkComplete();
+    checkComplete();
   }
 
   function checkComplete(){

@@ -356,62 +356,65 @@ document.getElementById('gameOverOverlay').classList.remove('show');
 
 // ===== Game Logic =====
 function handleColumnClick(col){
-initAudio();
-if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
-if(!gameActive||isAnimating) return;
-if(isAiMode&&currentPlayer===2) return;
-dropPiece(col);
+  if(!gameActive||isAnimating) return;
+  if(isAiMode&&currentPlayer===2) return;
+  initAudio();
+  if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+  dropPiece(col);
 }
 
-function dropPiece(col){
-const row = getLowestRow(col);
-if(row===-1){
-playSfxInvalid();
-return;
-}
-isAnimating = true;
-board[col][row] = currentPlayer;
-renderBoard();
+  function dropPiece(col){
+  const row = getLowestRow(col);
+  if(row===-1){
+    playSfxInvalid();
+    return;
+  }
+  isAnimating = true;
+  board[col][row] = currentPlayer;
+  renderBoard();
 
-// Animate drop
-  const cells = document.querySelectorAll('.cell');
-  const cellIdx = col*ROWS + row;
-const targetCell = cells[cellIdx];
-if(targetCell){
-targetCell.classList.add('dropping');
-}
+  // Animate drop
+    const cells = document.querySelectorAll('.cell');
+    const cellIdx = col*ROWS + row;
+  const targetCell = cells[cellIdx];
+  if(targetCell){
+    targetCell.classList.add('dropping');
+  }
 
-playSfxDrop();
+    playSfxDrop();
 
-setTimeout(()=>{
-const winCells = checkWin(col,row,currentPlayer);
-if(winCells){
-winningCells = winCells;
-gameActive = false;
-renderBoard();
-playSfxWin();
-const winner = currentPlayer===1?'Red':'Yellow';
-const emoji = currentPlayer===1?'🔴':'🟡';
-if(currentPlayer===1) scores.red++;
-else scores.yellow++;
-updateScore();
-showGameOver(`${emoji} ${winner} Wins!`,`Connect 4!`);
-} else if(isBoardFull()){
-gameActive = false;
-scores.draw++;
-updateScore();
-showGameOver('🤝 Draw!','Board is full');
-} else {
-currentPlayer = currentPlayer===1?2:1;
-isAnimating = false;
-renderBoard();
-if(isAiMode&&currentPlayer===2&&gameActive){
-setTimeout(aiMove,300);
-}
-}
-isAnimating = false;
-},380);
-}
+    setTimeout(()=>{
+      const winCells = checkWin(col,row,currentPlayer);
+      if(winCells){
+        winningCells = winCells;
+        gameActive = false;
+        const existingCells = document.querySelectorAll('.cell');
+        winningCells.forEach(([wc,wr])=>{
+          const idx = wc*ROWS + wr;
+          if(existingCells[idx]) existingCells[idx].classList.add('win');
+        });
+        playSfxWin();
+        const winner = currentPlayer===1?'Red':'Yellow';
+        const emoji = currentPlayer===1?'🔴':'🟡';
+        if(currentPlayer===1) scores.red++;
+        else scores.yellow++;
+        updateScore();
+        showGameOver(`${emoji} ${winner} Wins!`,`Connect 4!`);
+      } else if(isBoardFull()){
+        gameActive = false;
+        scores.draw++;
+        updateScore();
+        showGameOver('🤝 Draw!','Board is full');
+      } else {
+        currentPlayer = currentPlayer===1?2:1;
+        renderBoard();
+        if(isAiMode&&currentPlayer===2&&gameActive){
+          setTimeout(aiMove,300);
+        }
+      }
+      isAnimating = false;
+    },380);
+  }
 
 function aiMove(){
 if(!gameActive||currentPlayer!==2) return;
@@ -524,6 +527,16 @@ document.getElementById('resetBtn').addEventListener('click',resetGame);
 document.getElementById('playAgainBtn').addEventListener('click',resetGame);
 document.getElementById('modePvp').addEventListener('click',()=>setMode(false));
 document.getElementById('modeAi').addEventListener('click',()=>setMode(true));
+
+// Keyboard support
+let selectedCol = 3;
+document.addEventListener('keydown',e=>{
+  if(!gameActive) return;
+  if(isAiMode&&currentPlayer===2) return;
+  if(e.key==='ArrowLeft'){e.preventDefault();selectedCol=Math.max(0,selectedCol-1);}
+  else if(e.key==='ArrowRight'){e.preventDefault();selectedCol=Math.min(COLS-1,selectedCol+1);}
+  else if(e.key==='Enter'||e.key===' '){e.preventDefault();handleColumnClick(selectedCol);}
+});
 
 createBoard();
 gameActive = true;

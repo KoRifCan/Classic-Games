@@ -302,6 +302,7 @@ h1{
     if(tileEl){
       const cs=getCellSize();
       tileEl.style.transform=`translate(${emptyCol*cs+GAP/2}px,${emptyRow*cs+GAP/2}px)`;
+      tileEl.classList.toggle('correct',val===emptyRow*gridSize+emptyCol+1);
     }
     emptyRow=row;emptyCol=col;
     moves++;
@@ -381,7 +382,9 @@ h1{
     if(isShuffling)return;
     isShuffling=true;
     shuffleBtn.disabled=true;
+    document.querySelectorAll('.size-btn').forEach(b=>b.disabled=true);
     modal.classList.remove('open');
+    puzzleGrid.querySelectorAll('.tile.correct').forEach(t=>t.classList.remove('correct'));
     isSolved=false;timerStarted=false;stopTimer();
     initBoard();
     render();
@@ -392,8 +395,9 @@ h1{
     function doShuffleMove(){
       if(count>=total){
         isShuffling=false;shuffleBtn.disabled=false;
+        document.querySelectorAll('.size-btn').forEach(b=>b.disabled=false);
         moves=0;seconds=0;updateStats();
-        if(needsRender){needsRender=false;render();}
+        render();
         return;
       }
       count++;
@@ -438,6 +442,10 @@ h1{
 
   shuffleBtn.addEventListener('click',resetAndShuffle);
   playAgainBtn.addEventListener('click',resetAndShuffle);
+
+  modal.addEventListener('click',e=>{
+    if(e.target===modal)e.stopPropagation();
+  });
 
   document.addEventListener('keydown',e=>{
     if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();

@@ -270,15 +270,6 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
     _fading:false,
     _fadeTimer:null,
 
-    _ensureCtx(){
-      if(!this.ctx){
-        try{this.ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}
-      }
-      if(this.ctx&&this.ctx.state==='suspended'){
-        try{this.ctx.resume()}catch(e){}
-      }
-    },
-
     start(){
       if(!soundEnabled)return;
       if(this._fading){
@@ -288,8 +279,9 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
         this._fading=false;
       }
       if(this.playing)return;
-      this._ensureCtx();
-      if(!this.ctx)return;
+      initAudio();
+      this.ctx=audioCtx;
+      if(!this.ctx||!audioCtx)return;
       this.playing=true;
       this._fading=false;
       const now=this.ctx.currentTime;
@@ -484,8 +476,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
 
   function die(){
     state='dead';
-    showOverlay('dead');
-    // death particle burst
+    setTimeout(()=>showOverlay('dead'),200);
     for(const seg of snake){
       emitParticles(seg.x*GRID+GRID/2,seg.y*GRID+GRID/2,3,'#00ff88',0.8);
     }
@@ -687,7 +678,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
   // ---- INPUT ----
   function setDirection(dir){
     if(!opposite[dir])return;
-    if(dir===opposite[direction])return;
+    if(dir===opposite[nextDirection])return;
     nextDirection=dir;
   }
 

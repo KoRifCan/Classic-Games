@@ -54,7 +54,7 @@ body{
   background:#08081a;
   flex-shrink:0;overflow:hidden;
 }
-#board{display:block;width:100%;height:auto;}
+#board{display:block;width:100%;height:auto;aspect-ratio:1/2;}
 #side-panel{
   display:flex;flex-direction:column;gap:12px;
   min-width:130px;flex-shrink:0;
@@ -429,8 +429,9 @@ const bgMusic = {
 
   start(){
     if(this.playing) return;
+    initAudio();
     if(!this.ctx){
-      this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+      this.ctx=audioCtx;
       this._master=this.ctx.createGain();
       this._master.gain.value=0.25;
       this._master.connect(this.ctx.destination);
@@ -1326,7 +1327,7 @@ document.querySelectorAll('#mobile-controls button').forEach(btn=>{
   const action=btn.dataset.action;
   if(!action) return;
   const press=()=>{execAction(action);};
-  btn.addEventListener('touchstart',(e)=>{e.preventDefault();press();});
+  btn.addEventListener('touchstart',(e)=>{e.preventDefault();press();},{passive:false});
   btn.addEventListener('mousedown',(e)=>{e.preventDefault();press();});
 });
 
@@ -1379,6 +1380,8 @@ function init(){
   for(const k of Object.keys(dasState)) stopDAS(k);
 
   resizeBoard();
+  drawBoardBackground();
+  drawGrid();
   spawnNewPiece();
 
   loopRunning=true;
@@ -1389,11 +1392,19 @@ function init(){
   bgMusic.start();
 }
 
+let _restarting=false;
 document.getElementById('restart-btn').addEventListener('click',(e)=>{
+  if(_restarting) return;
+  _restarting=true;
+  setTimeout(()=>_restarting=false,300);
   init();
 });
 document.getElementById('restart-btn').addEventListener('touchend',(e)=>{
-  e.preventDefault();init();
+  e.preventDefault();
+  if(_restarting) return;
+  _restarting=true;
+  setTimeout(()=>_restarting=false,300);
+  init();
 });
 
 init();

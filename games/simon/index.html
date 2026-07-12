@@ -299,9 +299,10 @@ h1{
   function gameOver(){
     isPlaying=false;isPlayerTurn=false;isShowing=false;
     startBtn.disabled=false;startBtn.textContent='Start';
+    const completed=Math.max(0,round-1);
     modalTitle.textContent='Game Over';
-    modalScore.textContent=round;
-    modalMessage.textContent=round===1?'1 sequence remembered':`${round} sequences remembered`;
+    modalScore.textContent=completed;
+    modalMessage.textContent=completed===1?'1 sequence remembered':`${completed} sequences remembered`;
     modalBest.textContent=highScore>0?`Best: ${highScore}`:'';
     modal.classList.add('open');
   }
@@ -314,6 +315,7 @@ h1{
   }
 
   function startGame(){
+    if(isPlaying)return;
     initAudio();
     if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
     sequence=[];round=0;playerIdx=0;
@@ -332,8 +334,10 @@ h1{
     setTimeout(()=>lightDown(idx),200);
     if(idx!==sequence[playerIdx]){
       isPlayerTurn=false;playError();
-      if(strictMode)setTimeout(gameOver,400);
-      else{
+      if(strictMode){
+        setStatus('Wrong! Starting over...',false);
+        setTimeout(()=>{sequence=[];round=0;playerIdx=0;nextRound();},800);
+      }else{
         setStatus('Wrong! Watch again...',false);
         setTimeout(showSequence,800);
       }
@@ -365,6 +369,7 @@ h1{
   startBtn.addEventListener('click',startGame);
   playAgainBtn.addEventListener('click',startGame);
   strictToggle.addEventListener('change',()=>{strictMode=strictToggle.checked});
+  modal.querySelector('.modal-content').addEventListener('click',e=>e.stopPropagation());
 
   document.addEventListener('keydown',e=>{
     if(e.repeat)return;

@@ -158,7 +158,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   const bgMusic={
     ctx:null,masterGain:null,nodes:[],playing:false,_fading:false,_fadeTimer:null,
     _ensureCtx(){
-      if(!this.ctx){try{this.ctx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+      if(!this.ctx){this.ctx=audioCtx;}
       if(this.ctx&&this.ctx.state==='suspended'){try{this.ctx.resume()}catch(e){}}
     },
     start(){
@@ -249,7 +249,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     soundBtn.textContent=soundEnabled?'🔊':'🔇';
     try{localStorage.setItem('dinoSound',soundEnabled?'1':'0')}catch(e){}
     if(!soundEnabled)bgMusic.stop();
-    else if(state==='playing'||state==='running')bgMusic.start();
+    else if(state==='playing'||state==='running'){initAudio();try{bgMusic.start()}catch(e){console.error('bgMusic.start failed',e)}}
   }
   soundBtn.onclick=toggleSound;
 
@@ -529,8 +529,12 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
   }
 
   function gameLoop(){
-    update();
-    draw();
+    try{
+      update();
+      draw();
+    }catch(e){
+      console.error('Game loop error:',e);
+    }
     if(state!=='gameover') animId=requestAnimationFrame(gameLoop);
   }
 
@@ -539,7 +543,7 @@ canvas{display:block;width:100%;height:100%;touch-action:manipulation}
     resetGame();
     state='running';
     overlay.classList.remove('show');
-    bgMusic.start();
+    try{bgMusic.start()}catch(e){console.error('bgMusic.start failed',e)}
     if(animId)cancelAnimationFrame(animId);
     gameLoop();
   }

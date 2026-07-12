@@ -107,13 +107,13 @@ class BGMusic{
   }
   init(){
     if(this.ctx)return;
-    try{
-      this.ctx=new(window.AudioContext||window.webkitAudioContext)();
-      this.master=this.ctx.createGain();
-      this.master.gain.value=0.35;
-      this.master.connect(this.ctx.destination);
-      this._genNoise();
-    }catch(e){this.ctx=null}
+    audio.init();
+    if(!audio.ctx)return;
+    this.ctx=audio.ctx;
+    this.master=this.ctx.createGain();
+    this.master.gain.value=0.35;
+    this.master.connect(this.ctx.destination);
+    this._genNoise();
   }
   _genNoise(){
     const sr=this.ctx.sampleRate,len=Math.ceil(sr*0.5);
@@ -734,7 +734,7 @@ function update(){
     if(!b.alive){game.enemyBullets.splice(i,1);continue}
     if(p.alive&&p.invincible===0&&circHit(b,p,5,16)){
       b.alive=false;game.enemyBullets.splice(i,1);
-      if(p.shield){p.shield=false;p.powerTimers['P']=0;p.powerTypes=p.powerTypes.filter(t=>t!=='P');explode(b.x,b.y,'#00ccff',12,3);audio.play('hit');continue}
+      if(p.shield){p.shield=false;p.powerTimers['P']=0;p.powerTypes=p.powerTypes.filter(t=>t!=='P');p.invincible=30;explode(b.x,b.y,'#00ccff',12,3);audio.play('hit');continue}
       hitPlayer();
     }
   }
@@ -742,7 +742,7 @@ function update(){
     for(let i=game.enemies.length-1;i>=0;i--){
       const e=game.enemies[i],eRad=e.type==='boss'?38:15;
       if(circHit(p,e,16,eRad)){
-        if(p.shield){p.shield=false;p.powerTimers['P']=0;p.powerTypes=p.powerTypes.filter(t=>t!=='P');explode(e.x,e.y,'#00ccff',15,4);game.enemies.splice(i,1);game.score+=5;continue}
+        if(p.shield){p.shield=false;p.powerTimers['P']=0;p.powerTypes=p.powerTypes.filter(t=>t!=='P');p.invincible=30;explode(e.x,e.y,'#00ccff',15,4);game.enemies.splice(i,1);game.score+=5;continue}
         hitPlayer();break;
       }
     }

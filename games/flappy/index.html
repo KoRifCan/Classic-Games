@@ -357,7 +357,8 @@ function update(dt){
   if(gameState==='gameover'){
     bird.vel+=GRAVITY*dt;
     if(bird.vel>MAX_FALL)bird.vel=MAX_FALL;
-    bird.y+=bird.vel;
+    bird.y+=bird.vel*dt;
+    if(bird.y+bird.h>H-GROUND_H)bird.y=H-GROUND_H-bird.h;
     if(bird.vel>2)bird.targetRot=Math.min(MAX_ANGLE,bird.vel*6);
     bird.rot+=(bird.targetRot-bird.rot)*0.12;
     groundOffset=(groundOffset+GROUND_SPEED*0.6*dt)%24;
@@ -375,7 +376,7 @@ function update(dt){
   if(gameState==='playing'){
     bird.vel+=GRAVITY*dt;
     if(bird.vel>MAX_FALL)bird.vel=MAX_FALL;
-    bird.y+=bird.vel;
+    bird.y+=bird.vel*dt;
 
     bird.targetRot=bird.vel*5;
     bird.targetRot=Math.max(MIN_ANGLE,Math.min(MAX_ANGLE,bird.targetRot));
@@ -977,7 +978,11 @@ inputPointerId=null;
 document.removeEventListener('pointerup',pu);
 }
 });
-flap();
+    flap();
+});
+
+canvas.addEventListener('pointercancel',(e)=>{
+    if(e.pointerId===inputPointerId)inputPointerId=null;
 });
 
 document.addEventListener('keydown',(e)=>{

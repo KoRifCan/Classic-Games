@@ -95,15 +95,15 @@ body::after{
   backface-visibility:hidden;
 }
 .tile.pop{animation:tilePop .2s cubic-bezier(.34,1.56,.64,1) forwards}
-@keyframes tilePop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes tilePop{0%{opacity:0;filter:blur(6px)}60%{opacity:1;filter:blur(0)}100%{opacity:1;filter:blur(0)}}
 .tile.merged{z-index:20;animation:mergeGlow .32s ease-out forwards}
 .tile.removing{animation:fadeOut .2s ease forwards;pointer-events:none}
-@keyframes fadeOut{to{opacity:0;transform:scale(.6)}}
+@keyframes fadeOut{to{opacity:0;filter:blur(4px)}}
 @keyframes mergeGlow{
-  0%{transform:scale(1);filter:brightness(1)}
-  30%{transform:scale(1.18);filter:brightness(1.5)}
-  60%{transform:scale(.96)}
-  100%{transform:scale(1);filter:brightness(1)}
+  0%{opacity:0.7;filter:brightness(0.6)}
+  30%{opacity:1;filter:brightness(1.6)}
+  60%{opacity:1;filter:brightness(0.9)}
+  100%{opacity:1;filter:brightness(1)}
 }
 .tile-2{
   background:linear-gradient(135deg,#c5e8d4,#93d4b0);color:#1a2e1a;
@@ -586,12 +586,13 @@ function playWinSound(){playTone(523,.12,'sine',.08);setTimeout(()=>playTone(659
 function playGameOverSound(){playTone(400,.15,'sawtooth',.05);setTimeout(()=>playTone(300,.15,'sawtooth',.05),180);setTimeout(()=>playTone(200,.25,'sawtooth',.05),360)}
 
 const bgMusic={
-  ctx:null,gainNode:null,playing:false,nodes:[],
+  gainNode:null,playing:false,nodes:[],
   start(){
     if(this.playing)return;
     try{
       const ctx=getAudioCtx();
       this.playing=true;
+      musicBtn.textContent='♫ Music';
       this.gainNode=ctx.createGain();
       this.gainNode.gain.value=0.20;
       this.gainNode.connect(ctx.destination);
@@ -676,6 +677,7 @@ const bgMusic={
   },
   stop(){
     this.playing=false;
+    musicBtn.textContent='♪ Music';
     if(this._timer){clearTimeout(this._timer);this._timer=null;}
     this.nodes.forEach(n=>{try{n.stop()}catch(e){}});
     this.nodes=[];

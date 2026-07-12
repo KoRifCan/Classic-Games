@@ -169,6 +169,7 @@ let scores={wins:0,losses:0,draws:0};
 let aiThinking=false;
 let aiTimeoutId=null;
 let muted=false;
+let overlayTimeouts=[];
 
 const boardEl=document.getElementById('board');
 const cells=[...document.querySelectorAll('.cell')];
@@ -232,7 +233,7 @@ const bgMusic={
   playing:false,
   _create(){
     if(this.ctx&&this.ctx.state!=='closed')return;
-    this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    this.ctx=getAudioCtx();
   },
   _resume(){
     if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();
@@ -380,6 +381,8 @@ function createMarkSVG(player){
 
 function resetGame(){
   if(aiTimeoutId){clearTimeout(aiTimeoutId);aiTimeoutId=null}
+  overlayTimeouts.forEach(id=>clearTimeout(id));
+  overlayTimeouts=[];
   board=Array(BOARD_SIZE).fill(EMPTY);
   gameOver=false;
   aiThinking=false;
@@ -525,11 +528,11 @@ function handleGameEnd(result){
     playWin();
     result.line.forEach(i=>cells[i].classList.add('win-cell'));
     showWinLine(result.line);
-    setTimeout(()=>spawnConfetti(),200);
-    setTimeout(()=>{
+    overlayTimeouts.push(setTimeout(()=>spawnConfetti(),200));
+    overlayTimeouts.push(setTimeout(()=>{
       resultTitle.textContent='You Win!';resultTitle.className='result-title win-title';
       resultText.textContent='Perfect play!';resultOverlay.classList.add('show');
-    },500);
+    },500));
     setTurn('You win!',false);
   }else if(result.winner===AI){
     scores.losses++;
@@ -537,20 +540,20 @@ function handleGameEnd(result){
     playLose();
     result.line.forEach(i=>cells[i].classList.add('win-cell'));
     showWinLine(result.line);
-    setTimeout(()=>{
+    overlayTimeouts.push(setTimeout(()=>{
       resultTitle.textContent='You Lose!';resultTitle.className='result-title lose-title';
       resultText.textContent='AI wins this time.';resultOverlay.classList.add('show');
-    },500);
+    },500));
     setTurn('AI wins!',true);
   }else{
     scores.draws++;
     addHistory('draw');
     playDraw();
     cells.forEach(c=>c.classList.add('draw-cell'));
-    setTimeout(()=>{
+    overlayTimeouts.push(setTimeout(()=>{
       resultTitle.textContent="It's a Draw!";resultTitle.className='result-title draw-title';
       resultText.textContent='Close game!';resultOverlay.classList.add('show');
-    },400);
+    },400));
     setTurn("It's a draw!",false);
   }
   saveScores();
@@ -573,7 +576,12 @@ function aiMove(){
     aiTimeoutId=null;
     if(gameOver){aiThinking=false;return}
     const move=difficulty==='easy'?getRandomMove(board):getBestMove(board);
-    if(move===null){aiThinking=false;return}
+    if(move===null){
+      const r=getWinner(board);
+      if(r){handleGameEnd(r);aiThinking=false;return}
+      aiThinking=false;
+      return;
+    }
     if(gameOver||board[move]!==EMPTY){aiThinking=false;return}
     placeMark(move,AI);
     playPlace();
@@ -631,7 +639,7 @@ muteBtn.addEventListener('click',function(e){
   saveMuted();
   updateMuteBtn();
   if(muted)bgMusic.stop();
-  else {startBG();}
+  else bgMusic.start();
 });
 
 window.addEventListener('resize',()=>{
